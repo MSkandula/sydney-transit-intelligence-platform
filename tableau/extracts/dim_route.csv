@@ -1,0 +1,138 @@
+route_key,route_id,route_short_name,route_long_name,mode,operator
+-3402953319642480407,APS_1a,T8,City Circle to Macarthur via Airport,train,SydneyTrains
+3528247148565883103,APS_1b,T8,City Circle to Leppington via Airport,train,SydneyTrains
+-6417094206083242795,APS_1c,T8,City Circle to Macarthur via Sydenham,train,SydneyTrains
+3077076688999136044,APS_1d,T8,City Circle to Macarthur via Sydenham,train,SydneyTrains
+3446910552962544978,APS_1e,T8,City Circle to Leppington via Sydenham,train,SydneyTrains
+-2261129489481632198,APS_1f,T8,City Circle to Leppington via Sydenham,train,SydneyTrains
+-8074707193682375787,APS_2a,T8,Macarthur to City Circle via Airport,train,SydneyTrains
+-4997717676751494424,APS_2b,T8,Leppington to City Circle via Airport,train,SydneyTrains
+2798141468541829682,APS_2c,T8,Macarthur to City Circle via Sydenham,train,SydneyTrains
+3209398359404724700,APS_2d,T8,Macarthur to City Circle via Sydenham,train,SydneyTrains
+-3879013211178800379,APS_2e,T8,Leppington to City Circle via Sydenham,train,SydneyTrains
+4089134572644777184,APS_2f,T8,Leppington to City Circle via Sydenham,train,SydneyTrains
+-2224808403655777439,BMT_1,BMT,Central to Lithgow and Bathurst,train,NSWTrains
+2347072026132267080,BMT_2,BMT,Bathurst and Lithgow to Central,train,NSWTrains
+6945390360945871574,CCN_1a,CCN,Central to Newcastle Interchange via Strathfield,train,NSWTrains
+-5236434750823934246,CCN_1b,CCN,Central to Newcastle Interchange via Gordon,train,NSWTrains
+7107036069782603127,CCN_1c,CCN,Central to Newcastle Interchange via Strathfield,train,NSWTrains
+-5978113767534294052,CCN_2a,CCN,Newcastle Interchange to Central via Strathfield,train,NSWTrains
+627028831985276158,CCN_2b,CCN,Newcastle Interchange to Central via Gordon,train,NSWTrains
+8502485376767781749,CMB_1a,T5,Richmond to Leppington,train,SydneyTrains
+-2936976510359900114,CMB_1b,T5,Emu Plains to Leppington,train,SydneyTrains
+3823480081110772338,CMB_1c,T5,Richmond to Campbelltown,train,SydneyTrains
+1150323432029512968,CMB_1d,T5,Emu Plains to Campbelltown,train,SydneyTrains
+1644696160033301445,CMB_2a,T5,Leppington to Richmond,train,SydneyTrains
+299721892419967497,CMB_2b,T5,Leppington to Emu Plains,train,SydneyTrains
+2372143633426116796,CMB_2c,T5,Campbelltown to Richmond,train,SydneyTrains
+-1209867813534204200,CMB_2d,T5,Campbelltown to Emu Plains,train,SydneyTrains
+1184616885625128427,CTY_NC1,NRC,Sydney (Central) to Brisbane (Roma Street),train,NSWTrains
+3536717535841731573,CTY_NC1a,NRC,Sydney (Central) to Brisbane (Roma Street),train,NSWTrains
+3125284625347028980,CTY_NC2,NRC,Brisbane (Roma Street) to Sydney (Central),train,NSWTrains
+349349202673074924,CTY_NW1a,NRW,Sydney (Central) to Moree,train,NSWTrains
+146078348818404321,CTY_NW1b,NRW,Sydney (Central) to Armidale,train,NSWTrains
+-2181837974631116373,CTY_NW1c,NRW,Sydney (Central) to Moree,train,NSWTrains
+2374307585160416464,CTY_NW1d,NRW,Sydney (Central) to Armidale,train,NSWTrains
+-7077664516542904908,CTY_NW2a,NRW,Moree to Sydney (Central),train,NSWTrains
+-6694969283083521557,CTY_NW2b,NRW,Armidale to Sydney (Central),train,NSWTrains
+3178390953133347573,CTY_S1a,STH,Sydney (Central) to Canberra,train,NSWTrains
+-2907830188417780527,CTY_S1b,STH,Sydney (Central) to Canberra,train,NSWTrains
+-7312350344749849496,CTY_S1c,STH,Sydney (Central) to Canberra,train,NSWTrains
+5403183006007911275,CTY_S1d,STH,Sydney (Central) to Griffith,train,NSWTrains
+-6724435471239829749,CTY_S1e,STH,Sydney (Central) to Griffith,train,NSWTrains
+5840801060723246285,CTY_S1f,STH,Sydney (Central) to Griffith,train,NSWTrains
+-1473001782055765435,CTY_S1g,STH,Sydney (Central) to Melbourne (Southern Cross),train,NSWTrains
+2896041600508337517,CTY_S1h,STH,Sydney (Central) to Melbourne (Southern Cross),train,NSWTrains
+-6221745689490968550,CTY_S1i,STH,Sydney (Central) to Melbourne (Southern Cross),train,NSWTrains
+-8779489610683068226,CTY_S2a,STH,Canberra to Sydney (Central),train,NSWTrains
+-8602333564475449223,CTY_S2b,STH,Canberra to Sydney (Central),train,NSWTrains
+-2559971175246937751,CTY_S2c,STH,Canberra to Sydney (Central),train,NSWTrains
+1325142259646214404,CTY_S2d,STH,Griffith to Sydney (Central),train,NSWTrains
+8191261628825762145,CTY_S2e,STH,Griffith to Sydney (Central),train,NSWTrains
+-5135391438917680237,CTY_S2f,STH,Griffith to Sydney (Central),train,NSWTrains
+-7158105332023918754,CTY_S2g,STH,Melbourne (Southern Cross) to Sydney (Central),train,NSWTrains
+-48845993722819194,CTY_S2h,STH,Melbourne (Southern Cross) to Sydney (Central),train,NSWTrains
+-7491275462172734782,CTY_S2i,STH,Melbourne (Southern Cross) to Sydney (Central),train,NSWTrains
+1515519714633596771,CTY_W1a,WST,Sydney (Central) to Dubbo,train,NSWTrains
+1114505620833707795,CTY_W1b,WST,Sydney (Central) to Broken Hill,train,NSWTrains
+5392373685123964025,CTY_W2a,WST,Dubbo to Sydney (Central),train,NSWTrains
+3587904237465886991,CTY_W2b,WST,Broken Hill to Sydney (Central),train,NSWTrains
+2213430644432283724,ESI_1a,T4,Bondi Junction to Waterfall via City,train,SydneyTrains
+1240132754610898344,ESI_1b,T4,City Circle to Waterfall,train,SydneyTrains
+-8579160858663815588,ESI_1c,T4,City Circle to Waterfall,train,SydneyTrains
+-6150595769256102763,ESI_1d,T4,Bondi Junction to Cronulla via City,train,SydneyTrains
+-8860949549741138520,ESI_1e,T4,City Circle to Cronulla,train,SydneyTrains
+6623726655960024896,ESI_1f,T4,City Circle to Cronulla,train,SydneyTrains
+5630525952252418354,ESI_2a,T4,Waterfall to Bondi Junction via City,train,SydneyTrains
+5175417367365540535,ESI_2b,T4,Waterfall to City Circle ,train,SydneyTrains
+5285933596947171244,ESI_2c,T4,Waterfall to City Circle ,train,SydneyTrains
+7087056493799616534,ESI_2d,T4,Cronulla to Bondi Junction via City,train,SydneyTrains
+6893476243656098456,ESI_2e,T4,Cronulla to City Circle ,train,SydneyTrains
+-5513635247768088831,ESI_2f,T4,Cronulla to City Circle ,train,SydneyTrains
+4883075568160304027,HUN_1a,HUN,Newcastle Interchange to Dungog,train,NSWTrains
+4417269309177351658,HUN_1b,HUN,Newcastle Interchange to Scone,train,NSWTrains
+-3854120605471518994,HUN_2a,HUN,Dungog to Newcastle Interchange,train,NSWTrains
+5007904514412144092,HUN_2b,HUN,Scone to Newcastle Interchange,train,NSWTrains
+-460769293585121233,IWL_1a,T2,City Circle to Parramatta,train,SydneyTrains
+6193968622723203843,IWL_1b,T2,City Circle to Parramatta,train,SydneyTrains
+-2200421255733575805,IWL_1c,T2,City Circle to Leppington via Granville,train,SydneyTrains
+7284748182596493165,IWL_1d,T2,City Circle to Leppington via Granville,train,SydneyTrains
+2161230079104197071,IWL_1e,T2,City Circle to Leppington via Regents Park,train,SydneyTrains
+1221224009602693160,IWL_1f,T2,City Circle to Leppington via Regents Park,train,SydneyTrains
+5311805744952906065,IWL_1g,T2,Bankstown to Leppington,train,SydneyTrains
+-8590447049958111075,IWL_1i,T2,City Circle to Campbelltown via Granville,train,SydneyTrains
+1258465799022621567,IWL_1j,T2,City Circle to Campbelltown via Granville,train,SydneyTrains
+-1562489065343894865,IWL_2a,T2,Parramatta to City Circle ,train,SydneyTrains
+7400251048012378211,IWL_2b,T2,Parramatta to City Circle ,train,SydneyTrains
+-7246217427817351284,IWL_2c,T2,Leppington to City Circle via Granville,train,SydneyTrains
+-8761173739318814829,IWL_2d,T2,Leppington to City Circle via Granville,train,SydneyTrains
+4659744773727575182,IWL_2e,T2,Leppington to City Circle via Regents Park,train,SydneyTrains
+4691458740276869547,IWL_2f,T2,Leppington to City Circle via Regents Park,train,SydneyTrains
+4132240000327817005,IWL_2g,T2,Leppington to Bankstown,train,SydneyTrains
+-4396571606196770016,IWL_2i,T2,Campbelltown to City Circle via Granville,train,SydneyTrains
+-1303612948344505806,IWL_2j,T2,Campbelltown to City Circle via Granville,train,SydneyTrains
+4622583836084576750,NSN_1a,T1,City to Hornsby and Berowra via Gordon,train,SydneyTrains
+9187031006395744173,NSN_2a,T1,Berowra and Hornsby to City via Gordon,train,SydneyTrains
+9218376079003314857,NSN_2i,T1,Berowra to Richmond via City,train,SydneyTrains
+6965782384900562698,NSN_2k,T1,Berowra to Emu Plains via City,train,SydneyTrains
+8283204442033751644,NTH_1a,T9,North Shore to Hornsby and Berowra via City and Strathfield,train,SydneyTrains
+2926858006344023531,NTH_1b,T9,North Shore to Hornsby and Berowra via City and Strathfield,train,SydneyTrains
+8355324188916703396,NTH_2a,T9,Berowra and Hornsby to North Shore via Strathfield and City,train,SydneyTrains
+1273529647987399013,OLY_1a,T7,Central to Olympic Park,train,SydneyTrains
+-3865546843487294607,OLY_1b,T7,Olympic Park to Blacktown,train,SydneyTrains
+5096923697721243545,OLY_2a,T7,Olympic Park to Central,train,SydneyTrains
+-7364126812600970332,OLY_2b,T7,Blacktown to Olympic Park,train,SydneyTrains
+506920052778427473,RTTA_DEF,,Out Of Service,train,SydneyTrains
+4366774083614345187,RTTA_REV,,Non Revenue,train,SydneyTrains
+4202176109787108346,SCO_1a,SCO,Bondi Junction and Central to Bomaderry ,train,NSWTrains
+-3539652250674250885,SCO_1b,SCO,Bondi Junction and Central to Port Kembla,train,NSWTrains
+799312986268590053,SCO_2a,SCO,Bomaderry to Central and Bondi Junction,train,NSWTrains
+7005896456830233422,SCO_2b,SCO,Port Kembla to Central and Bondi Junction,train,NSWTrains
+6421697089639588546,SHL_1a,SHL,Central to Campbelltown and Goulburn via Granville,train,NSWTrains
+553693249511917465,SHL_1b,SHL,Central to Campbelltown and Goulburn via Regents Park,train,NSWTrains
+7099516068550533704,SHL_1c,SHL,Central to Campbelltown and Goulburn via Airport,train,NSWTrains
+8353099500564872452,SHL_1d,SHL,Central to Campbelltown and Goulburn via East Hills and Sydenham,train,NSWTrains
+7835924838457624329,SHL_1e,SHL,Campbelltown to Goulburn,train,NSWTrains
+-7436632033036558263,SHL_2a,SHL,Goulburn to Campbelltown and Central via Granville,train,NSWTrains
+8378492030879658234,SHL_2b,SHL,Goulburn to Campbelltown and Central via Regents Park,train,NSWTrains
+-4261850583285317021,SHL_2c,SHL,Goulburn to Campbelltown and Central via Airport,train,NSWTrains
+-1879124410114975180,SHL_2d,SHL,Goulburn to Campbelltown and Central via East Hills and Sydenham,train,NSWTrains
+-7316505829012677515,SHL_2e,SHL,Goulburn to Campbelltown,train,NSWTrains
+-7189270326134903042,T3_1a,T3,City Circle to Liverpool via Regents Park,train,SydneyTrains
+-2398108274111041511,T3_1b,T3,City Circle to Liverpool via Regents Park,train,SydneyTrains
+-1482151186623865843,T3_1c,T3,Lidcombe to Liverpool via Regents Park,train,SydneyTrains
+6228501476923438915,T3_1d,T3,Bankstown to Liverpool,train,SydneyTrains
+-5842204805049448059,T3_2a,T3,Liverpool to City Circle via Regents Park,train,SydneyTrains
+-923579374989113359,T3_2b,T3,Liverpool to City Circle via Regents Park,train,SydneyTrains
+4458461905226594776,T3_2c,T3,Liverpool to Lidcombe via Regents Park,train,SydneyTrains
+2203676127428383300,T3_2d,T3,Liverpool to Bankstown,train,SydneyTrains
+6046529738798421338,T6_1a,T6,Lidcombe to Bankstown,train,SydneyTrains
+-5736501019292966897,T6_1b,T6,City Circle to Bankstown,train,SydneyTrains
+-7826908861145066754,T6_1c,T6,City Circle to Bankstown,train,SydneyTrains
+-5911806343721876623,T6_2a,T6,Bankstown to Lidcombe,train,SydneyTrains
+8595034154199357049,T6_2b,T6,Bankstown to City Circle,train,SydneyTrains
+4372012232878979249,T6_2c,T6,Bankstown to City Circle,train,SydneyTrains
+-8080502455091207041,WST_1a,T1,City to Emu Plains,train,SydneyTrains
+-2301718121315425992,WST_1b,T1,City to Richmond,train,SydneyTrains
+-4689984939195006273,WST_2c,T1,Emu Plains to Berowra via City ,train,SydneyTrains
+-6255990460352317300,WST_2d,T1,Richmond to Berowra via City ,train,SydneyTrains
