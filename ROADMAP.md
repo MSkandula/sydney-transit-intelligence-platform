@@ -13,12 +13,15 @@ Legend: ⬜ not started · 🟨 in progress · ✅ done
 Scope deliberately narrow: **Sydney Trains only**, GTFS static + trip updates only (no
 vehicle positions or alerts yet), 1–2 weeks of captured data.
 
-- ⬜ Register for a TfNSW Open Data Hub API key
-- ⬜ Verify Databricks Free Edition specifics: job scheduling frequency, external
-  network access from notebooks, storage limits (see PROJECT_PLAN §5 "known unknown")
+- ⬜ Register on the TfNSW Open Data Hub and create an application → API key
+- ⬜ Sign up for Databricks Free Edition (personal, free, no card required)
+- ⬜ Set up a local Python venv (repo `requirements.txt` already scaffolded) — use a
+  project venv, not the base Anaconda environment, matching the other projects' convention
 - ⬜ `ingestion/gtfs_static_ingest.py` — pull + store one static feed snapshot
-- ⬜ `ingestion/gtfs_rt_ingest.py` — poll trip updates, decode protobuf, store snapshot
-- ⬜ Land both into Bronze Delta tables (manual run is fine for MVP — no scheduling yet)
+- ⬜ `ingestion/gtfs_rt_ingest.py` — poll the **v2** trip updates endpoint (Sydney
+  Trains uses v2, not v1 — see PROJECT_PLAN §5), decode protobuf, store snapshot
+- ⬜ Land both into Bronze Delta tables in a Unity Catalog Volume (manual run is fine
+  for MVP — scheduling as a Databricks Job comes in Phase 2)
 - ⬜ Silver PySpark notebook: reconcile RT trip_id → static trip_id, compute
   scheduled/actual timestamps and delay_seconds, dedup to latest snapshot per trip-stop
 - ⬜ Hand-written SQL Gold tables (dbt deferred to Phase 3): `fact_trip_stop_performance`

@@ -58,44 +58,62 @@ requires a registered API key).
 Deliberately **not** using weather, external traffic, or social media data — out of
 scope; adds ingestion complexity without a proportional business-question payoff.
 
-## 5. End-to-end architecture
+## 5. End-to-end architecture (confirmed against current platform docs, Sept 2026)
 
 ```
-TfNSW Open Data Hub (GTFS static zip + GTFS-RT protobuf)
+TfNSW Open Data Hub
+  - GTFS Static Schedule (daily-published zip)
+  - GTFS-Realtime Trip Updates — Sydney Trains/Metro/Inner West Light Rail use the
+    v2 dataset (v1 is superseded for these modes); bus/ferry/regional still use v1
+  - upstream feed refreshes every ~15s; we poll every 5 min (see §11 — polling faster
+    buys no real analytical value here and risks the Free Edition fair-usage cap)
         │
         ▼
 Python ingestion (requests + gtfs-realtime-bindings)
-  scheduled as Databricks Jobs notebooks (see §11 orchestration)
+  scheduled as a Databricks Job — plain scheduled batch, not continuous (see §11)
         │
         ▼
-BRONZE  — Delta tables, raw/append-only, Databricks Free Edition storage
-        │  (PySpark)
-        ▼
+BRONZE  — Delta tables in Unity Catalog (preconfigured in Free Edition — no external
+        │  cloud storage account needed; landed in a managed Volume, loaded as Delta)
+        ▼  (PySpark, serverless compute)
 SILVER  — Delta tables, cleaned/conformed/deduplicated, delay calculated
-        │  (dbt Core, dbt-databricks adapter)
+        │  (dbt Core + dbt-databricks, against Free Edition's one pre-provisioned
+        │   "Serverless Starter Warehouse" — dev and CI both use this same warehouse,
+        │   isolated by target schema, since Free Edition can't create new warehouses)
         ▼
 GOLD    — Delta tables, star schema marts, dbt-tested and documented
         │
-        ├──▶ Tableau Public (extracts exported from Gold) — operational dashboards
+        ├──▶ Tableau Public — manual extract export + republish (Tableau Public has
+        │     no scheduled-refresh mechanism for file-based sources; this is a real
+        │     platform limit, not a shortcut, and worth naming directly in interviews)
         └──▶ small scikit-learn/XGBoost delay-risk model, scored back into Gold
 
 GitHub + GitHub Actions: version control for all code (ingestion, notebooks, dbt
-project); CI runs pytest + `dbt build` against a CI schema on Databricks on every PR.
+project); CI runs pytest + `dbt build` against a dedicated `ci` schema on the same
+Free Edition warehouse, on every PR.
 ```
 
 **Key infrastructure decision:** everything free. Ingestion, compute, and orchestration
 run inside **Databricks Free Edition** (free workspace, serverless compute, Unity
-Catalog storage, and native Workflows for scheduling) — this avoids needing any paid
-cloud storage (no S3/ADLS bill) while still giving a real lakehouse to build on.
-GitHub Actions is used for CI/CD, not as the production scheduler.
+Catalog storage, native Jobs for scheduling) — this avoids needing any paid cloud
+storage while still giving a real lakehouse to build on. GitHub Actions is used for
+CI/CD, not as the production scheduler.
 
-**Known unknown to verify early (Phase 1, day one):** Databricks Free Edition's exact
-current limits on job scheduling frequency, external network egress from notebooks, and
-storage retention. The design above is the intended shape; if a specific limit blocks
-it (e.g. can't poll every few minutes from within Free Edition), the fallback is to run
-the frequent RT polling locally on a cron/GitHub Actions schedule and land files into a
-Databricks Volume via the Databricks CLI/SDK, then continue the pipeline unchanged from
-Bronze onward. Confirm this on day one, not after building around an assumption.
+**Confirmed platform facts this design assumes (verified via current docs, not memory):**
+- Free Edition is serverless-only (no custom clusters); Unity Catalog is preconfigured;
+  **max 5 concurrent job tasks per account**; exceeding the fair-usage quota shuts the
+  workspace down for the rest of the day (or month, in extreme cases). → keep the job
+  DAG small and sequential, poll conservatively.
+- "Continuous" scheduling only works via bounded Structured Streaming triggers (e.g.
+  `Trigger.AvailableNow`) — true always-on streaming isn't available on Free Edition. →
+  don't build toward Structured Streaming for the MVP; a plain scheduled batch Job is
+  both simpler to build/explain and the platform-idiomatic choice here.
+- dbt connects to the one pre-provisioned Serverless Starter Warehouse; Free Edition
+  can't create additional SQL warehouses.
+- Tableau Public genuinely has no scheduled-refresh mechanism for file-based sources —
+  confirmed, not a workaround-able limitation.
+
+Sources: [Free Edition limitations](https://docs.databricks.com/aws/en/getting-started/free-edition-limitations) · [Sign up for Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) · [TfNSW Realtime Trip Update v2](https://opendata.transport.nsw.gov.au/data/dataset/public-transport-realtime-trip-update-v2) · [dbt Databricks setup](https://docs.getdbt.com/docs/local/connect-data-platform/databricks-setup) · [Tableau data refresh](https://help.tableau.com/current/pro/desktop/en-us/refreshing_data.htm)
 
 ## 6. Bronze / Silver / Gold responsibilities
 
@@ -186,16 +204,30 @@ Summary:
 
 ## 11. Orchestration (no paid services)
 
-- **Primary:** Databricks Workflows (native, free in Free Edition) chains: ingest
-  static (weekly) → ingest realtime (every 5–10 min) → Silver PySpark transform →
-  `dbt build` (Gold) → DQ check notebook. This is a real, industry-used orchestrator
-  (plenty of companies run Databricks Workflows instead of Airflow) — a legitimate
-  answer to "how did you orchestrate this," not a toy.
+Three small Databricks Jobs (Free Edition, serverless compute only — confirmed limits
+in §5 shape this design directly):
+
+- **Job A — Ingest Realtime**: one task, scheduled every 5 min, calls the TfNSW GTFS-RT
+  v2 trip updates endpoint, decodes protobuf, appends to Bronze. A single task per run
+  stays well clear of the 5-concurrent-task account cap.
+- **Job B — Ingest Static**: one task, scheduled weekly, refreshes the GTFS static
+  snapshot and tags it with a feed version.
+- **Job C — Daily Pipeline**: 2–3 **sequential** tasks in one job, scheduled once or
+  twice daily: Silver PySpark transform → `dbt build` (Gold) → DQ check notebook.
+  Keep this linear, not fan-out, to stay inside the concurrency cap.
+
+This is a real, industry-used pattern (plenty of companies run Databricks Jobs instead
+of Airflow at this scale) — a legitimate answer to "how did you orchestrate this," not
+a toy.
+
 - **GitHub Actions** is CI/CD, not production orchestration: runs on push/PR, and
   optionally a `workflow_dispatch`/cron step that triggers a Databricks Job via the
   Jobs REST API, to demonstrate the two systems talking to each other.
+- **Deliberately not** attempting Structured Streaming/Auto Loader for the MVP — Free
+  Edition's continuous scheduling only supports bounded triggers anyway, so a plain
+  scheduled batch job is both simpler and platform-idiomatic here.
 - **Deliberately not** standing up Airflow/Dagster/Prefect locally — unnecessary
-  infrastructure for this scale when Databricks Workflows already covers it for free.
+  infrastructure for this scale when Databricks Jobs already covers it for free.
 
 ## 12. Tableau dashboards & KPIs
 
