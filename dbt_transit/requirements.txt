@@ -1,0 +1,4 @@
+# dbt deps, kept separate from the top-level requirements.txt — dbt-core's own
+# dependency constraints can conflict with ingestion/ML libraries in a shared venv.
+dbt-core==1.12.3
+dbt-databricks==1.12.5

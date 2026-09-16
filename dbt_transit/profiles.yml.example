@@ -1,0 +1,31 @@
+# Reference copy only — dbt reads the real profiles.yml from ~/.dbt/profiles.yml
+# (or wherever DBT_PROFILES_DIR points), never from inside this repo. This file is
+# a template so a new machine can be set up without guessing the shape.
+#
+# All values below come from environment variables already sitting in .env at the
+# repo root — export them into the shell before running dbt:
+#   set -a; source .env; set +a; dbt debug
+#
+# host/http_path/token match the same Databricks Free Edition SQL warehouse
+# ("Serverless Starter Warehouse") that .env's DATABRICKS_HOST/HTTP_PATH/TOKEN
+# already describe.
+
+transit_intelligence:
+  target: dev
+  outputs:
+    dev:
+      type: databricks
+      catalog: "{{ env_var('DBT_CATALOG', 'workspace') }}"
+      schema: dev
+      host: "{{ env_var('DATABRICKS_HOST') }}"
+      http_path: "{{ env_var('DATABRICKS_HTTP_PATH') }}"
+      token: "{{ env_var('DATABRICKS_TOKEN') }}"
+      threads: 2
+    ci:
+      type: databricks
+      catalog: "{{ env_var('DBT_CATALOG', 'workspace') }}"
+      schema: ci
+      host: "{{ env_var('DATABRICKS_HOST') }}"
+      http_path: "{{ env_var('DATABRICKS_HTTP_PATH') }}"
+      token: "{{ env_var('DATABRICKS_TOKEN') }}"
+      threads: 2

@@ -115,6 +115,28 @@ CI/CD, not as the production scheduler.
 
 Sources: [Free Edition limitations](https://docs.databricks.com/aws/en/getting-started/free-edition-limitations) · [Sign up for Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) · [TfNSW Realtime Trip Update v2](https://opendata.transport.nsw.gov.au/data/dataset/public-transport-realtime-trip-update-v2) · [dbt Databricks setup](https://docs.getdbt.com/docs/local/connect-data-platform/databricks-setup) · [Tableau data refresh](https://help.tableau.com/current/pro/desktop/en-us/refreshing_data.htm)
 
+**One more thing discovered by actually connecting (not by reading docs):** the personal
+access token this project uses is scoped to `sql` only — the Unity Catalog admin API,
+Workspace API, Files (REST) API, and Jobs API all return `PermissionDenied` for this
+token, confirmed by testing each directly, not assumed from a permissions table. SQL
+warehouse access is unrestricted, though. Practical effect on the architecture:
+- **Bronze materialization runs as SQL** (`read_files()` for static, `COPY INTO` for
+  realtime — see `ingestion/land_bronze.py`) instead of a PySpark notebook driven by
+  API. This isn't a downgrade: `COPY INTO` natively tracks which files it's already
+  loaded, which *is* the incremental-loading mechanism §10 describes, not a manual
+  substitute for it.
+- **Volume uploads run via the SQL connector's `PUT` command** (`ingestion/
+  databricks_upload.py`), not the Files REST API, for the same reason.
+- **A PySpark notebook still exists** (`notebooks/bronze/land_gtfs_bronze.py`) as the
+  equivalent Phase 2+ path for working directly inside the Databricks UI, where a
+  logged-in browser session carries full workspace permissions regardless of this
+  token's scope. It's optional, not required — Phase 1 doesn't depend on it.
+- **Databricks Jobs/Workflows orchestration (§11) has to be configured through the
+  Databricks UI**, not via the Jobs API, with this token. That's a completely normal
+  way to set up a job in practice — plenty of real Databricks users click through the
+  Jobs UI rather than automating job creation — so this doesn't block §11's design,
+  it just means "set up by hand once" rather than "provisioned by a script."
+
 ## 6. Bronze / Silver / Gold responsibilities
 
 **Bronze** — raw landing, append-only, schema-on-read, minimal transformation.

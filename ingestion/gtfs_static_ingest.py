@@ -1,12 +1,13 @@
-"""Pull one GTFS static schedule snapshot for Sydney Trains and land it locally.
+"""Pull one GTFS static schedule snapshot for Sydney Trains and land it.
 
-Phase 1: lands to data/bronze/gtfs_static/ (local, git-ignored). Phase 2 replaces the
-local landing step with a direct write into a Databricks Unity Catalog Volume — the
-fetch/versioning logic here doesn't change.
+Always lands locally under data/bronze/ (git-ignored). If Databricks credentials are
+present in the environment, also uploads the snapshot into the
+workspace.bronze.raw_landing Unity Catalog volume via `databricks_upload.py`.
 """
 
 import hashlib
 import logging
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -14,6 +15,7 @@ from pathlib import Path
 import requests
 
 from config import AGENCY, GTFS_SCHEDULE_BASE_URL, LOCAL_LANDING_DIR, auth_headers
+from databricks_upload import upload_to_volume
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
@@ -58,6 +60,17 @@ def main() -> int:
     log.info(
         "Saved static schedule snapshot: %s (%d bytes)", out_path, len(content)
     )
+
+    if os.environ.get("DATABRICKS_HOST"):
+        volume_subpath = f"gtfs_static/{AGENCY}/{out_path.name}"
+        try:
+            upload_to_volume(out_path, volume_subpath)
+        except Exception:
+            log.exception("Landed locally but failed to upload to Databricks volume")
+            return 1
+    else:
+        log.info("DATABRICKS_HOST not set — skipping volume upload (local-only run)")
+
     return 0
 
 

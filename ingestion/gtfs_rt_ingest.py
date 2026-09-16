@@ -1,13 +1,14 @@
 """Poll the TfNSW GTFS-Realtime v2 Trip Updates feed for Sydney Trains, decode the
-protobuf FeedMessage, flatten it to one row per (trip, stop) update, and land it
-locally as a timestamped Parquet snapshot.
+protobuf FeedMessage, flatten it to one row per (trip, stop) update, and land it.
 
-Phase 1: lands to data/bronze/gtfs_rt_trip_updates/ (local, git-ignored). Phase 2
-replaces the local landing step with a scheduled Databricks Job appending directly
-to a Bronze Delta table — the fetch/decode/flatten logic here doesn't change.
+Always lands locally under data/bronze/ (git-ignored) as a timestamped Parquet
+snapshot. If Databricks credentials are present, also uploads the snapshot into the
+workspace.bronze.raw_landing Unity Catalog volume — from there,
+notebooks/bronze/land_gtfs_bronze.py appends it into the Bronze Delta table.
 """
 
 import logging
+import os
 import sys
 from datetime import datetime, timezone
 
@@ -16,6 +17,7 @@ import requests
 from google.transit import gtfs_realtime_pb2
 
 from config import AGENCY, GTFS_REALTIME_V2_BASE_URL, LOCAL_LANDING_DIR, auth_headers
+from databricks_upload import upload_to_volume
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
@@ -121,6 +123,18 @@ def main() -> int:
     log.info(
         "Saved %d trip-stop update records to %s", len(records), out_path
     )
+
+    if os.environ.get("DATABRICKS_HOST"):
+        date_partition = ingested_at.strftime("%Y-%m-%d")
+        volume_subpath = f"gtfs_rt_trip_updates/{AGENCY}/dt={date_partition}/{out_path.name}"
+        try:
+            upload_to_volume(out_path, volume_subpath)
+        except Exception:
+            log.exception("Landed locally but failed to upload to Databricks volume")
+            return 1
+    else:
+        log.info("DATABRICKS_HOST not set — skipping volume upload (local-only run)")
+
     return 0
 
 

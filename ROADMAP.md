@@ -26,10 +26,18 @@ vehicle positions or alerts yet), 1–2 weeks of captured data.
   records across 307 trips. Observed arrival delays ranging 0–5,306 seconds — the
   5,306s (~88 min) outlier is exactly the kind of value the Silver-layer range-check
   (§9 in PROJECT_PLAN) needs to quarantine and investigate, not silently trust
-- ⬜ Land both into Bronze Delta tables in a Unity Catalog Volume — Phase 1 currently
-  lands to local `data/bronze/` (git-ignored); wiring to Databricks Volumes is next
+- ✅ Land both into Bronze Delta tables in `workspace.bronze` — **done and verified
+  with real row counts**: `gtfs_static_routes` (137), `gtfs_static_stops` (1,214),
+  `gtfs_static_trips` (65,916), `gtfs_static_stop_times` (1,208,729),
+  `gtfs_static_calendar` (121), `gtfs_rt_trip_updates` (2,916, loaded via `COPY INTO`
+  which tracks already-loaded files itself — the actual incremental-loading mechanism,
+  see `ingestion/land_bronze.py`)
 - ✅ Databricks PAT + SQL warehouse HTTP path added to `.env` (git-ignored, confirmed
-  not tracked)
+  not tracked). Discovered this PAT is scoped to `sql` only — Jobs/Workspace/Files/
+  Unity-Catalog-admin APIs all reject it — so Bronze materialization runs as SQL
+  (`read_files`/`COPY INTO`) via `ingestion/land_bronze.py`, not a PySpark notebook
+  driven by API. See PROJECT_PLAN.md §5 for the full explanation and what this changes
+  about orchestration (§11 Jobs get set up by hand in the UI, not provisioned by script)
 - ⬜ Silver PySpark notebook: reconcile RT trip_id → static trip_id, compute
   scheduled/actual timestamps and delay_seconds, dedup to latest snapshot per trip-stop
 - ⬜ Hand-written SQL Gold tables (dbt deferred to Phase 3): `fact_trip_stop_performance`
