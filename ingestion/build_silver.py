@@ -13,6 +13,11 @@ step does that Bronze deliberately doesn't:
    needed for this snapshot. The ~2% that don't match are kept (left join), not
    dropped, and flagged via `is_orphan_trip` — that's the DQ signal PROJECT_PLAN.md §9
    describes, not swept under the rug.
+
+   A second, real quirk found the same way: TfNSW's v2 feed leaves `trip.start_date`
+   empty on every record in this feed (confirmed empirically, not assumed) — so
+   `service_date` falls back to the poll's `feed_timestamp` date wherever start_date
+   is blank, rather than silently producing a null service_date downstream.
 3. Cross-check — TfNSW's feed already publishes `arrival_delay_seconds` directly, so
    Silver doesn't need to recompute delay from scratch. It does add a plausibility
    range flag (`is_delay_outlier`) since the very first live pull surfaced a real
@@ -54,7 +59,7 @@ def build_trip_stop_performance(cur) -> None:
             rt.route_id,
             rt.stop_id,
             rt.stop_sequence,
-            rt.start_date AS service_date,
+            COALESCE(NULLIF(rt.start_date, ''), date_format(rt.feed_timestamp, 'yyyyMMdd')) AS service_date,
             rt.schedule_relationship,
             rt.arrival_delay_seconds,
             rt.departure_delay_seconds,

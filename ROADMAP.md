@@ -38,13 +38,25 @@ vehicle positions or alerts yet), 1–2 weeks of captured data.
   (`read_files`/`COPY INTO`) via `ingestion/land_bronze.py`, not a PySpark notebook
   driven by API. See PROJECT_PLAN.md §5 for the full explanation and what this changes
   about orchestration (§11 Jobs get set up by hand in the UI, not provisioned by script)
-- ⬜ Silver PySpark notebook: reconcile RT trip_id → static trip_id, compute
-  scheduled/actual timestamps and delay_seconds, dedup to latest snapshot per trip-stop
-- ⬜ Hand-written SQL Gold tables (dbt deferred to Phase 3): `fact_trip_stop_performance`
-  + minimal `dim_route`/`dim_stop`/`dim_date`
+- ✅ Silver reconciliation (`ingestion/build_silver.py`, SQL not PySpark — see above):
+  dedups RT snapshots to one row per (trip, stop), reconciles against static schedule
+  (98.1% direct trip_id match, 56 orphans flagged not dropped), cross-checks TfNSW's
+  own published delay value against a plausibility range (0 outliers past 2hr — the
+  5,306s max sits inside that range, worth revisiting once more data accumulates)
+- ✅ Hand-written SQL Gold tables (`ingestion/build_gold.py`, dbt deferred to Phase 3):
+  `dim_date` (30 rows), `dim_route` (137), `dim_stop` (1,214),
+  `fact_trip_stop_performance` (2,916 rows), `mart_route_daily_performance`.
+  On-time threshold (300s / 5 min) matches TfNSW's own published "Customer On-Time"
+  standard, not an arbitrary number — verified via transport.nsw.gov.au, not memory
+  (an earlier draft used a misremembered 5:59 threshold, corrected before shipping)
 - ⬜ One Tableau Public dashboard: Network/Route On-Time Performance Overview
-- ⬜ README + PROJECT_PLAN in the repo (done), basic pytest for the protobuf decode step
-- ⬜ Write up the one real insight this phase found
+- ✅ README + PROJECT_PLAN in the repo, basic pytest for the protobuf decode step
+- 🟨 The one real insight this phase found, so far: on 2026-09-16, the **STH line
+  (CTY_S1c)** ran 0% on-time with a ~39-minute average delay, and the **T2 (IWL_1c)**
+  branch also hit 0% on-time — concrete evidence of a real service disruption
+  captured live, not a synthetic example. Also found and fixed: TfNSW's v2 feed
+  leaves `trip.start_date` empty on every record, requiring a `feed_timestamp`-based
+  fallback for `service_date` (see PROJECT_PLAN.md / ingestion/build_silver.py)
 
 ## Phase 2 — Data engineering
 - ⬜ Formalize ingestion as scheduled Databricks Jobs (Workflows)
