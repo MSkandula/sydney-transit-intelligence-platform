@@ -1,55 +1,121 @@
 # Sydney Transit Intelligence Platform
 
-An end-to-end analytics platform that ingests real-time and scheduled public transport
-data from Transport for NSW (TfNSW) to measure, explain, and surface where Sydney's
-public transport network is underperforming — and why.
+An analytics platform that ingests live public transport data from Transport for
+NSW (TfNSW) to measure, explain, and surface where Sydney's rail network is
+underperforming — and why.
 
-This is a portfolio project built to demonstrate data engineering and analytics
-engineering skills that complement (not repeat) my existing PostgreSQL/pandas/Tableau/
-Power BI projects: API ingestion, Databricks + PySpark, Delta Lake, a Bronze/Silver/Gold
-lakehouse, dbt, incremental pipelines, data quality testing, Git-based CI/CD, and basic
-orchestration — all built on entirely free tooling.
+## The problem
 
-Full plan: see [PROJECT_PLAN.md](PROJECT_PLAN.md) for the business case, architecture,
-data model, and design decisions, and [ROADMAP.md](ROADMAP.md) for the phased build
-plan and current status.
+TfNSW publishes a live GTFS-Realtime feed, but not a consolidated, historical,
+analysis-ready reliability dataset — the realtime feed is a snapshot that only
+becomes useful for trend analysis once it's captured over time and reconciled
+against the published schedule. That reconciliation (which trip was late, by how
+much, and what else was happening at the time) is the actual problem this project
+solves.
 
-## Why this project exists
+## Why this project
 
-My existing projects (PAYscope, E-Commerce Delivery & Retention Analysis) prove SQL,
-Python, Power BI/DAX, Tableau, and data-quality thinking on static, already-collected
-datasets. They don't demonstrate ingesting live external data, working with a lakehouse,
-or building tested, orchestrated pipelines — which is what separates a Data Analyst
-portfolio from one that also stands up for Junior Data Engineer / Analytics Engineer
-roles in the Sydney market. This project closes that gap using a real, public,
-Sydney-relevant data source (TfNSW GTFS feeds) instead of a generic Kaggle CSV.
+My other projects — [PAYscope](https://github.com/MSkandula) and E-Commerce
+Delivery & Retention Analysis — prove SQL, Python, Power BI/DAX, Tableau, and
+data-quality thinking on static, already-collected datasets. This one is built to
+demonstrate what those don't: live API ingestion, a lakehouse (Bronze/Silver/Gold),
+incremental loading, and pipeline-level data quality checks — the skills that
+separate a Data Analyst portfolio from one that also stands up for Junior Data
+Engineer / Analytics Engineer roles in the Sydney market. It uses a real, public,
+Sydney-specific data source instead of a generic dataset.
+
+## Architecture
+
+```
+TfNSW Open Data Hub (GTFS static + GTFS-Realtime v2)
+        │
+        ▼
+Python ingestion  ──────────────►  local landing (data/, git-ignored)
+        │
+        ▼
+Databricks Unity Catalog volume (workspace.bronze.raw_landing)
+        │
+        ▼
+BRONZE   Delta tables — read_files() for static, COPY INTO for realtime
+        ▼                (COPY INTO tracks already-loaded files itself —
+SILVER   Delta tables —  that's the incremental-loading mechanism, not a
+         dedup + schedule  manual reimplementation of one)
+         reconciliation
+        ▼
+GOLD     star schema — dim_date / dim_route / dim_stop /
+         fact_trip_stop_performance / mart_route_daily_performance
+        │
+        ▼
+CSV extracts  ──────────────►  Tableau Public dashboards
+```
+
+Everything runs on free tooling: Databricks Free Edition (serverless SQL
+warehouse + Unity Catalog), GitHub Actions, and Tableau Public. No paid cloud
+services anywhere in the stack.
 
 ## Tech stack
 
 | Layer | Tool | Why |
 |---|---|---|
-| Ingestion | Python (`requests`, `gtfs-realtime-bindings`) | Pull GTFS static + realtime (protobuf) feeds from TfNSW's Open Data Hub |
-| Storage / compute | Databricks Free Edition + PySpark + Delta Lake | Free lakehouse compute; ACID tables; handles schema drift across weekly static releases |
-| Transformation | dbt Core (dbt-databricks adapter) | Silver → Gold business logic, testing, documentation, version control for SQL |
-| Orchestration | Databricks Workflows | Free, in-platform job scheduling — no Airflow needed for this scale |
-| CI/CD | GitHub Actions | Lint + unit test ingestion code, run `dbt build` against a CI schema on every PR |
+| Ingestion | Python (`requests`, `gtfs-realtime-bindings`) | Pulls GTFS static + realtime (protobuf) feeds from TfNSW's Open Data Hub |
+| Storage / compute | Databricks Free Edition, Delta Lake | Free serverless lakehouse; ACID tables; handles schema drift across weekly static releases |
+| Bronze → Gold transforms | SQL via the Databricks SQL warehouse (`read_files()`, `COPY INTO`) | This project's access token is scoped to SQL only — confirmed by testing, not assumed — so Bronze/Silver/Gold run as SQL rather than PySpark notebooks driven by API |
+| Transformation (Phase 3) | dbt Core (dbt-databricks adapter) | Same Gold layer, rebuilt with tests, docs, and incremental models |
 | BI | Tableau Public | Operational dashboards published from Gold-layer extracts |
-| ML (secondary) | scikit-learn / XGBoost | Small delay-risk classifier scored from Gold data — not the focus |
+| CI/CD (Phase 5) | GitHub Actions | Lint + unit tests, `dbt build` against a CI schema on every PR |
+| ML (Phase 5, secondary) | scikit-learn / XGBoost | Small delay-risk classifier — not the focus |
 
-## Repository map
+Full design rationale, including two things discovered only by actually building
+this (the token's SQL-only scope, and TfNSW's realtime feed leaving `start_date`
+blank) live in [PROJECT_PLAN.md](PROJECT_PLAN.md).
+
+## What's built and verified so far
+
+Not a plan — real output from the live pipeline:
+
+- **Bronze**: 6 Delta tables in `workspace.bronze` — 137 routes, 1,214 stops, 65,916
+  trips, 1,208,729 scheduled stop-times, 2,916 realtime trip-stop updates
+- **Silver**: 98.1% of realtime records reconcile directly against the static
+  schedule on `trip_id`; the rest are flagged as orphans, not dropped
+- **Gold**: a working star schema, using TfNSW's actual published on-time standard
+  (within 5 minutes) rather than an arbitrary threshold
+- **A real finding**: on 2026-09-16, Sydney Trains' STH line ran 0% on-time with a
+  ~39-minute average delay — captured live, not a synthetic example
+- **5 passing unit tests** on the GTFS-Realtime protobuf decode logic
+
+See [ROADMAP.md](ROADMAP.md) for the full, currently-accurate status per phase.
+
+## Repository structure
 
 ```
-ingestion/       Python scripts that pull GTFS static + GTFS-RT feeds from TfNSW
-notebooks/       Databricks notebooks: bronze landing, silver transforms, ML scoring
-dbt_transit/     dbt project: Gold-layer star schema, tests, documentation
-tableau/         Tableau Public workbooks + exported extracts
-tests/           pytest unit tests for ingestion/parsing logic
-docs/            Data model reference, architecture notes
-.github/workflows/  CI/CD pipelines
-PROJECT_PLAN.md  Full design doc — business case through interview prep
-ROADMAP.md       Phased build plan and status tracker
+ingestion/          Python: TfNSW ingestion, Databricks volume upload, Bronze/
+                     Silver/Gold SQL builders, Tableau extract export
+notebooks/           Optional PySpark path for working directly in the Databricks
+                     UI (unexecuted — Phase 1 runs entirely via ingestion/)
+dbt_transit/         dbt project scaffold — models arrive in Phase 3
+tableau/extracts/    Gold-layer CSVs, ready for Tableau Public
+tests/               pytest unit tests
+docs/data_model.md   Star schema reference — grain, keys, columns
+.github/workflows/   CI/CD (Phase 5)
+PROJECT_PLAN.md      Full design doc: business case → interview prep
+ROADMAP.md           Phased build plan and live status
+PREREQUISITES.md     Accounts/tools needed to run this yourself
 ```
 
-## Status
+## Running this yourself
 
-Planning complete. Build not started. See [ROADMAP.md](ROADMAP.md) for Phase 1 (MVP) scope.
+See [PREREQUISITES.md](PREREQUISITES.md) for the accounts needed (TfNSW API key,
+Databricks Free Edition), then:
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env   # fill in your own keys — never commit this file
+
+python ingestion/gtfs_static_ingest.py
+python ingestion/gtfs_rt_ingest.py
+python ingestion/land_bronze.py
+python ingestion/build_silver.py
+python ingestion/build_gold.py
+python ingestion/export_gold_extracts.py
+```
