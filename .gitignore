@@ -1,0 +1,32 @@
+# secrets / env
+.env
+.env.*
+*.pem
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# dbt
+dbt_transit/target/
+dbt_transit/dbt_packages/
+dbt_transit/logs/
+
+# databricks
+.databricks/
+
+# data (never commit raw pulls or extracts)
+data/
+*.parquet
+*.csv
+!tableau/**/*.csv
+
+# tableau
+*.twb
+*.hyper
+
+# os
+.DS_Store

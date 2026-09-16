@@ -1,0 +1,6 @@
+# Phase 1 ingestion + testing deps. Pin versions once the environment is set up.
+requests
+gtfs-realtime-bindings
+pandas
+pytest
+python-dotenv
