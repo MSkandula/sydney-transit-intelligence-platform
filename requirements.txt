@@ -1,6 +1,7 @@
-# Phase 1 ingestion + testing deps. Pin versions once the environment is set up.
-requests
-gtfs-realtime-bindings
-pandas
-pytest
-python-dotenv
+# Phase 1 ingestion + testing deps.
+requests==2.34.2
+gtfs-realtime-bindings==2.2.0
+pandas==3.0.5
+pyarrow==25.0.1
+pytest==9.1.1
+python-dotenv==1.2.3

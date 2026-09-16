@@ -13,15 +13,21 @@ Legend: ⬜ not started · 🟨 in progress · ✅ done
 Scope deliberately narrow: **Sydney Trains only**, GTFS static + trip updates only (no
 vehicle positions or alerts yet), 1–2 weeks of captured data.
 
-- ⬜ Register on the TfNSW Open Data Hub and create an application → API key
-- ⬜ Sign up for Databricks Free Edition (personal, free, no card required)
-- ⬜ Set up a local Python venv (repo `requirements.txt` already scaffolded) — use a
-  project venv, not the base Anaconda environment, matching the other projects' convention
-- ⬜ `ingestion/gtfs_static_ingest.py` — pull + store one static feed snapshot
-- ⬜ `ingestion/gtfs_rt_ingest.py` — poll the **v2** trip updates endpoint (Sydney
-  Trains uses v2, not v1 — see PROJECT_PLAN §5), decode protobuf, store snapshot
-- ⬜ Land both into Bronze Delta tables in a Unity Catalog Volume (manual run is fine
-  for MVP — scheduling as a Databricks Job comes in Phase 2)
+- 🟨 Register on the TfNSW Open Data Hub and create an application → API key
+  (registration in progress — need the API key pasted into `.env` to run live)
+- ✅ Sign up for Databricks Free Edition (workspace live)
+- ✅ Set up a local Python venv (`.venv/`, `requirements.txt` pinned and installed)
+- ✅ `ingestion/gtfs_static_ingest.py` — fetches `v1/gtfs/schedule/sydneytrains`,
+  content-hash-versions the snapshot, lands locally (not yet run live — needs API key)
+- ✅ `ingestion/gtfs_rt_ingest.py` — polls `v2/gtfs/realtime/sydneytrains`, decodes
+  protobuf, flattens to one row per trip-stop update, lands locally as Parquet.
+  Decode/flatten logic unit-tested (5 passing tests in `tests/test_gtfs_rt_ingest.py`,
+  no network needed) — not yet run against the live feed (needs API key)
+- ⬜ Land both into Bronze Delta tables in a Unity Catalog Volume — Phase 1 currently
+  lands to local `data/bronze/` (git-ignored); wiring to Databricks Volumes is next,
+  once the API key is in and a first live pull is verified
+- ⬜ Databricks PAT + SQL warehouse HTTP path added to `.env` (needed before any
+  Databricks-side work — dbt profile, Volume writes)
 - ⬜ Silver PySpark notebook: reconcile RT trip_id → static trip_id, compute
   scheduled/actual timestamps and delay_seconds, dedup to latest snapshot per trip-stop
 - ⬜ Hand-written SQL Gold tables (dbt deferred to Phase 3): `fact_trip_stop_performance`
