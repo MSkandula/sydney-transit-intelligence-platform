@@ -13,21 +13,23 @@ Legend: ⬜ not started · 🟨 in progress · ✅ done
 Scope deliberately narrow: **Sydney Trains only**, GTFS static + trip updates only (no
 vehicle positions or alerts yet), 1–2 weeks of captured data.
 
-- 🟨 Register on the TfNSW Open Data Hub and create an application → API key
-  (registration in progress — need the API key pasted into `.env` to run live)
-- ✅ Sign up for Databricks Free Edition (workspace live)
+- ✅ Register on the TfNSW Open Data Hub and generate an API key (account: `maheshsai1204`;
+  turns out the personal "API Tokens" key from account settings is what authenticates
+  against `api.transport.nsw.gov.au` — no separate "Applications" step needed, resolved
+  by testing rather than trusting older/ambiguous docs)
+- ✅ Sign up for Databricks Free Edition (workspace live: Serverless Starter Warehouse
+  connection details captured in `.env`)
 - ✅ Set up a local Python venv (`.venv/`, `requirements.txt` pinned and installed)
-- ✅ `ingestion/gtfs_static_ingest.py` — fetches `v1/gtfs/schedule/sydneytrains`,
-  content-hash-versions the snapshot, lands locally (not yet run live — needs API key)
-- ✅ `ingestion/gtfs_rt_ingest.py` — polls `v2/gtfs/realtime/sydneytrains`, decodes
-  protobuf, flattens to one row per trip-stop update, lands locally as Parquet.
-  Decode/flatten logic unit-tested (5 passing tests in `tests/test_gtfs_rt_ingest.py`,
-  no network needed) — not yet run against the live feed (needs API key)
+- ✅ `ingestion/gtfs_static_ingest.py` — **run live**, pulled a real 10.6MB GTFS bundle
+  (agency.txt, routes.txt, stops.txt, trips.txt, stop_times.txt, calendar.txt, etc.)
+- ✅ `ingestion/gtfs_rt_ingest.py` — **run live**, decoded 2,870 real trip-stop update
+  records across 307 trips. Observed arrival delays ranging 0–5,306 seconds — the
+  5,306s (~88 min) outlier is exactly the kind of value the Silver-layer range-check
+  (§9 in PROJECT_PLAN) needs to quarantine and investigate, not silently trust
 - ⬜ Land both into Bronze Delta tables in a Unity Catalog Volume — Phase 1 currently
-  lands to local `data/bronze/` (git-ignored); wiring to Databricks Volumes is next,
-  once the API key is in and a first live pull is verified
-- ⬜ Databricks PAT + SQL warehouse HTTP path added to `.env` (needed before any
-  Databricks-side work — dbt profile, Volume writes)
+  lands to local `data/bronze/` (git-ignored); wiring to Databricks Volumes is next
+- ✅ Databricks PAT + SQL warehouse HTTP path added to `.env` (git-ignored, confirmed
+  not tracked)
 - ⬜ Silver PySpark notebook: reconcile RT trip_id → static trip_id, compute
   scheduled/actual timestamps and delay_seconds, dedup to latest snapshot per trip-stop
 - ⬜ Hand-written SQL Gold tables (dbt deferred to Phase 3): `fact_trip_stop_performance`
