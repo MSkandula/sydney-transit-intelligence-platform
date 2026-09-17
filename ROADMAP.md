@@ -212,7 +212,12 @@ vehicle positions or alerts yet), 1–2 weeks of captured data.
   up. MLflow logging attempted and confirmed unavailable (`403: ... required
   scopes: mlflow` — same SQL-only-token pattern as everywhere else in this
   project), not silently skipped.
-- ⬜ Architecture diagram + runbook in `docs/`
+- ✅ Architecture diagram + runbook in `docs/`:
+  [docs/architecture.md](../docs/architecture.md) (Mermaid, renders inline on
+  GitHub) and [docs/runbook.md](../docs/runbook.md) — the "something looks wrong,
+  now what" reference, built from the real failure modes actually hit while
+  running this pipeline (TCC permissions, launchd's minimal PATH, concurrent-run
+  429s, warehouse cold starts), not a hypothetical checklist
 - ⬜ *(stretch, optional)* Structured Streaming/Auto Loader for RT ingestion
 
 ---

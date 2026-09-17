@@ -150,6 +150,7 @@ docs/architecture.md  Full architecture diagram (Mermaid) and why it changed fro
 docs/data_model.md   Star schema reference — grain, keys, columns
 docs/kpi_definitions.md  Precise definition of every KPI used in the dashboards
 docs/scheduled_ingestion.md  How the local launchd job works, and its real limits
+docs/runbook.md      Operational checks and fixes for real failure modes hit running this
 .github/workflows/   CI/CD — ruff + pytest, and dbt build/test on an isolated CI schema
 PROJECT_PLAN.md      Full design doc: business case → interview prep
 ROADMAP.md           Phased build plan and live status

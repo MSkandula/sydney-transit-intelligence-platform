@@ -1,16 +1,16 @@
 route_id,header_text,cause,effect,observations_during_alert,avg_delay_during_alert_seconds,baseline_avg_delay_seconds,delay_lift_seconds
-IWL_1c,Buses replace trains between Leppington and Fairfield,MAINTENANCE,MODIFIED_SERVICE,2,699.5,43.4,656.1
-IWL_2c,Buses replace trains between Leppington and Fairfield,MAINTENANCE,MODIFIED_SERVICE,8,164.3,70.6,93.6
-WST_1b,T1 Western Line: Trains run to a changed timetable and make extra stops,MAINTENANCE,MODIFIED_SERVICE,7,92.9,67.1,25.7
-CMB_1a,Buses replace trains between Leppington and Fairfield,MAINTENANCE,MODIFIED_SERVICE,51,37.5,23.0,14.5
-IWL_2i,Buses replace trains between Leppington and Fairfield,MAINTENANCE,MODIFIED_SERVICE,15,0.0,0.0,0.0
-IWL_2b,Buses replace trains between Leppington and Fairfield,MAINTENANCE,MODIFIED_SERVICE,4,0.0,3.7,-3.7
-IWL_1i,Buses replace trains between Leppington and Fairfield,MAINTENANCE,MODIFIED_SERVICE,38,4.4,9.6,-5.2
-CMB_2a,Buses replace trains between Leppington and Fairfield,MAINTENANCE,MODIFIED_SERVICE,43,3.7,11.1,-7.4
-WST_2c,T1 Western Line: Trains run to a changed timetable and make extra stops,MAINTENANCE,MODIFIED_SERVICE,124,3.1,18.5,-15.3
-IWL_1a,Buses replace trains between Leppington and Fairfield,MAINTENANCE,MODIFIED_SERVICE,163,3.1,26.0,-22.9
-T3_2a,Buses replace trains between Liverpool and Lidcombe,MAINTENANCE,MODIFIED_SERVICE,7,0.0,29.1,-29.1
-WST_1a,T1 Western Line: Trains run to a changed timetable and make extra stops,MAINTENANCE,MODIFIED_SERVICE,55,33.4,67.5,-34.2
-IWL_2a,Buses replace trains between Leppington and Fairfield,MAINTENANCE,MODIFIED_SERVICE,32,0.0,98.4,-98.4
-T3_1a,Buses replace trains between Liverpool and Lidcombe,MAINTENANCE,MODIFIED_SERVICE,1,0.0,139.4,-139.4
-CMB_1b,Buses replace trains between Leppington and Fairfield,MAINTENANCE,MODIFIED_SERVICE,20,51.9,672.8,-620.9
+IWL_1c,Buses replace trains between Leppington and Fairfield,MAINTENANCE,MODIFIED_SERVICE,2,699.5,40.8,658.7
+IWL_2c,Buses replace trains between Leppington and Fairfield,MAINTENANCE,MODIFIED_SERVICE,8,164.3,58.1,106.2
+WST_1b,T1 Western Line: Trains run to a changed timetable and make extra stops,MAINTENANCE,MODIFIED_SERVICE,7,92.9,52.8,40.0
+CMB_1a,Buses replace trains between Leppington and Fairfield,MAINTENANCE,MODIFIED_SERVICE,51,37.5,24.3,13.3
+WST_2c,T1 Western Line: Trains run to a changed timetable and make extra stops,MAINTENANCE,MODIFIED_SERVICE,124,3.1,15.0,-11.9
+IWL_2i,Buses replace trains between Leppington and Fairfield,MAINTENANCE,MODIFIED_SERVICE,15,0.0,13.6,-13.6
+CMB_2a,Buses replace trains between Leppington and Fairfield,MAINTENANCE,MODIFIED_SERVICE,43,3.7,21.0,-17.3
+WST_1a,T1 Western Line: Trains run to a changed timetable and make extra stops,MAINTENANCE,MODIFIED_SERVICE,55,33.4,53.7,-20.3
+IWL_1i,Buses replace trains between Leppington and Fairfield,MAINTENANCE,MODIFIED_SERVICE,38,4.4,25.3,-20.9
+IWL_1a,Buses replace trains between Leppington and Fairfield,MAINTENANCE,MODIFIED_SERVICE,163,3.1,28.2,-25.2
+IWL_2b,Buses replace trains between Leppington and Fairfield,MAINTENANCE,MODIFIED_SERVICE,4,0.0,25.8,-25.8
+T3_2a,Buses replace trains between Liverpool and Lidcombe,MAINTENANCE,MODIFIED_SERVICE,7,0.0,32.2,-32.2
+IWL_2a,Buses replace trains between Leppington and Fairfield,MAINTENANCE,MODIFIED_SERVICE,32,0.0,79.9,-79.9
+T3_1a,Buses replace trains between Liverpool and Lidcombe,MAINTENANCE,MODIFIED_SERVICE,1,0.0,128.1,-128.1
+CMB_1b,Buses replace trains between Leppington and Fairfield,MAINTENANCE,MODIFIED_SERVICE,20,51.9,428.4,-376.5
