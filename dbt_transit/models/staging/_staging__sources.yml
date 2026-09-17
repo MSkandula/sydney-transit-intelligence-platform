@@ -1,0 +1,18 @@
+version: 2
+
+sources:
+  - name: bronze
+    database: workspace
+    schema: bronze
+    description: >
+      Landed by ingestion/land_bronze.py — read_files() for static GTFS files,
+      COPY INTO for realtime trip updates and service alerts (incremental, tracks
+      already-loaded files itself). Not managed by dbt.
+    tables:
+      - name: gtfs_static_routes
+      - name: gtfs_static_stops
+      - name: gtfs_static_trips
+      - name: gtfs_static_stop_times
+      - name: gtfs_static_calendar
+      - name: gtfs_rt_trip_updates
+      - name: gtfs_service_alerts

@@ -1,0 +1,81 @@
+version: 2
+
+models:
+  - name: dim_date
+    columns:
+      - name: date_key
+        tests: [not_null, unique]
+
+  - name: dim_route
+    columns:
+      - name: route_key
+        tests: [not_null, unique]
+      - name: mode
+        tests:
+          - accepted_values:
+              values: [train, bus, ferry, light_rail, other]
+
+  - name: dim_stop
+    columns:
+      - name: stop_key
+        tests: [not_null, unique]
+
+  - name: fact_trip_stop_performance
+    description: >
+      Grain: one row per (service_date, trip_id, stop_id, stop_sequence).
+      Incremental, merged on that key. stop_id is part of the grain because
+      TfNSW's feed doesn't reliably populate stop_sequence for at least some
+      NSW TrainLink intercity trips (see model SQL for the real example this
+      surfaced) — a dbt test on real accumulated data caught 1,348 violations
+      before stop_id was added to the key.
+    columns:
+      - name: route_key
+        tests:
+          - relationships:
+              to: ref('dim_route')
+              field: route_key
+              config:
+                severity: warn # dim_route rebuilds from the latest static feed only;
+                # a route retired mid-history could legitimately orphan here
+      - name: arrival_delay_seconds
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: -600
+              max_value: 100000 # generous — is_delay_outlier flags extremes, this
+              # test only catches genuinely broken data (e.g. a unit conversion bug)
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [service_date, trip_id, stop_id, stop_sequence]
+
+  - name: fact_service_alerts
+    columns:
+      - name: alert_id
+        tests: [not_null]
+      - name: route_key
+        tests:
+          - relationships:
+              to: ref('dim_route')
+              field: route_key
+              config:
+                severity: warn
+
+  - name: mart_route_daily_performance
+    columns:
+      - name: pct_on_time
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [date_key, route_id]
+
+  - name: mart_line_delay_concentration
+    columns:
+      - name: cumulative_pct_of_network_delay
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100.1 # rounding can push the last row a hair past 100.0
+
+  - name: mart_alert_delay_impact

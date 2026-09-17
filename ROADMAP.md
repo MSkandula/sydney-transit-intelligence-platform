@@ -116,10 +116,35 @@ vehicle positions or alerts yet), 1–2 weeks of captured data.
 - ⬜ Expand scope beyond Sydney Trains to other modes
 
 ## Phase 3 — Analytics engineering
-- ⬜ Stand up `dbt_transit/` as a real dbt Core project (dbt-databricks adapter)
-- ⬜ Rebuild Gold as the full star schema (see docs/data_model.md)
-- ⬜ dbt tests: not_null, unique, relationships, accepted_values, custom tests
-- ⬜ dbt docs generated and reviewed
+- ✅ Stood up `dbt_transit/` as a real dbt Core project (dbt-databricks adapter) —
+  8 staging models + sources.yml, 1 intermediate model (the Silver reconciliation
+  logic, ported from `build_silver.py`), 8 marts (dims, incremental fact, both
+  business-impact marts). Clean `dbt build`: **46 passed, 0 errors** against live data.
+- ✅ Rebuilt Gold as the full star schema, now dbt-managed — see docs/data_model.md
+- ✅ 31 dbt tests: not_null, unique, relationships (some `severity: warn` where a
+  real, expected mismatch exists — e.g. alerts referencing routes outside the
+  current static feed), accepted_values, and `dbt_utils.unique_combination_of_columns`
+  / `accepted_range` from the dbt_utils package
+- ✅ dbt docs generated (`dbt docs generate`, verified locally) — publishing to
+  GitHub Pages is a Phase 5 CI item, not done yet
+- ✅ **Cut the scheduled pipeline over to dbt** — `scripts/run_pipeline.sh` now runs
+  `dbt build` instead of `ingestion/build_silver.py` + `build_gold.py`, which are
+  kept in the repo as the superseded Phase 1 reference (see dbt_transit/README.md
+  for why running both would conflict — it did, once, during the actual cutover)
+- ✅ **Three real things this dbt project caught on its first build against real
+  data** (full detail in dbt_transit/README.md):
+  1. An `accepted_values` test failed — TfNSW uses a `REPLACEMENT` schedule_relationship
+     value (bus-replaces-train services) that wasn't in the initial accepted list,
+     written from general GTFS-RT spec knowledge rather than the real feed.
+  2. A uniqueness test failed with 1,348 violations — TfNSW reports
+     `stop_sequence=0` for every stop on at least some NSW TrainLink intercity
+     trips, breaking the assumption (also baked into PROJECT_PLAN.md §10's original
+     spec) that `stop_sequence` alone is unique per trip. Fixed by adding `stop_id`
+     to the fact table's grain — corrected in PROJECT_PLAN.md and data_model.md too.
+  3. dbt's incremental `MERGE` failed with `DELTA_MERGE_UNRESOLVED_EXPRESSION`
+     against the pre-existing hand-SQL `gold.fact_trip_stop_performance` table
+     (different, incompatible column set). Fixed by dropping the legacy table —
+     the intended outcome of the cutover, not a workaround.
 
 ## Phase 4 — BI
 - ⬜ Build out all 3 Tableau dashboards (Overview, Route/Stop Deep Dive, Service Alerts)

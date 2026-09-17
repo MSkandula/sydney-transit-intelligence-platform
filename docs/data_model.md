@@ -57,15 +57,22 @@ or aggregate this table.
 | `date_key` (FK) | |
 | `route_key` (FK) | |
 | `stop_key` (FK) | |
-| `trip_key` (FK) | |
-| `stop_sequence` | position of this stop within the trip |
-| `scheduled_arrival_ts` / `actual_arrival_ts` | |
-| `arrival_delay_seconds` | `actual - scheduled` |
-| `scheduled_departure_ts` / `actual_departure_ts` | |
-| `departure_delay_seconds` | |
-| `is_cancelled`, `is_skipped` | |
+| `stop_id` (degenerate) | part of the grain — see below, not just for traceability here |
+| `trip_id` (degenerate) | |
+| `stop_sequence` | position of this stop within the trip — **not reliably populated by TfNSW for all trips**, see below |
+| `arrival_delay_seconds`, `departure_delay_seconds` | published directly by TfNSW's feed, not recomputed from scheduled vs. actual timestamps |
+| `is_cancelled`, `is_orphan_trip`, `is_delay_outlier` | flags, not filters — see PROJECT_PLAN.md §9 |
 
-dbt incremental config (Phase 3): `unique_key = (service_date, trip_id, stop_sequence)`.
+**Grain: (service_date, trip_id, stop_id, stop_sequence)** — dbt `unique_key` for
+the incremental merge. `stop_id` is part of the grain deliberately, not just for
+traceability: an earlier version of this spec used `(service_date, trip_id,
+stop_sequence)` alone, on the (usual GTFS) assumption that `stop_sequence` is
+unique per trip. Real accumulated data broke that assumption — TfNSW's feed reports
+`stop_sequence=0` for every stop on at least some NSW TrainLink intercity trips
+(confirmed example: a Central Coast & Newcastle Line service with 34 distinct real
+stations, all stamped `stop_sequence=0`). A dbt uniqueness test caught 1,348
+violating rows on the first real multi-day build; including `stop_id` in the grain
+disambiguates correctly for both well-behaved and broken trips.
 
 ### `fact_service_alerts`
 Grain: one row per (alert, route) — built as `SELECT DISTINCT` over

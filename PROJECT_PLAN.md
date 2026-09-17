@@ -221,8 +221,14 @@ Summary:
   watermarked batch, not Structured Streaming/Auto Loader; that's a clearly-labelled
   Phase 5 stretch, not an MVP requirement.
 - **dbt:** Gold fact models use `is_incremental()` with a `unique_key` of
-  (`service_date`, `trip_id`, `stop_sequence`) so a re-run doesn't reprocess full
-  history.
+  (`service_date`, `trip_id`, `stop_id`, `stop_sequence`) so a re-run doesn't
+  reprocess full history. `stop_id` is in the key deliberately, corrected from an
+  earlier draft of this spec that assumed GTFS's usual guarantee that
+  `stop_sequence` alone is unique per trip — real accumulated data broke that
+  assumption (TfNSW's feed reports `stop_sequence=0` for every stop on at least some
+  NSW TrainLink intercity trips; a dbt test caught 1,348 violating rows on the first
+  real multi-day build). See `dbt_transit/models/marts/fact_trip_stop_performance.sql`
+  for the full explanation.
 
 ## 11. Orchestration (no paid services)
 

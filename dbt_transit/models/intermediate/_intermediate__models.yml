@@ -1,0 +1,11 @@
+version: 2
+
+models:
+  - name: int_trip_stop_performance
+    description: >
+      One row per (service_date, trip_id, stop_id, stop_sequence) — deduped and
+      reconciled against the static schedule. Grain enforced by the test below,
+      which is exactly the bug this model already fixed once in Phase 1.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [service_date, trip_id, stop_id, stop_sequence]

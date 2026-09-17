@@ -13,9 +13,22 @@ clean-targets:
   - "target"
   - "dbt_packages"
 
+vars:
+  # TfNSW's published punctuality standard (within 5 min) — see PROJECT_PLAN.md §5
+  on_time_threshold_seconds: 300
+  # Plausibility range for delay values; outside this range gets flagged
+  # (is_delay_outlier), never silently dropped — see PROJECT_PLAN.md §9
+  plausible_delay_low_seconds: -600
+  plausible_delay_high_seconds: 7200
+
 models:
   transit_intelligence:
     staging:
       +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: view
+      +schema: silver
     marts:
       +materialized: table
+      +schema: gold

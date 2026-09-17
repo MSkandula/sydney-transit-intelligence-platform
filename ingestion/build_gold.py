@@ -1,8 +1,14 @@
-"""Build the Phase 1 Gold layer: a minimal but real star schema over Silver.
+"""SUPERSEDED by dbt_transit/models/marts/ — kept here as the Phase 1 MVP reference,
+not run by scripts/run_pipeline.sh anymore. Running this against the same gold
+schema dbt now owns would conflict with it (this happened once during the actual
+cutover — see dbt_transit/README.md for the real error and fix). Safe to run
+standalone against a throwaway schema if you want to compare approaches.
 
-Hand-written SQL, deliberately — dbt takes over this layer in Phase 3 (see
-dbt_transit/). The point of Phase 1 is proving the pipeline and the model shape
-work end to end before adding dbt's testing/docs machinery on top.
+Build the Phase 1 Gold layer: a minimal but real star schema over Silver.
+
+Hand-written SQL, the original approach before dbt_transit/ existed. The point of
+Phase 1 was proving the pipeline and the model shape worked end to end before
+adding dbt's testing/docs machinery on top.
 
 Tables built here (grain documented in docs/data_model.md):
 - gold.dim_date         one row per calendar date across the current static feed's

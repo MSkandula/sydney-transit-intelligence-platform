@@ -59,8 +59,8 @@ services anywhere in the stack.
 |---|---|---|
 | Ingestion | Python (`requests`, `gtfs-realtime-bindings`) | Pulls GTFS static + realtime (protobuf) feeds from TfNSW's Open Data Hub |
 | Storage / compute | Databricks Free Edition, Delta Lake | Free serverless lakehouse; ACID tables; handles schema drift across weekly static releases |
-| Bronze → Gold transforms | SQL via the Databricks SQL warehouse (`read_files()`, `COPY INTO`) | This project's access token is scoped to SQL only — confirmed by testing, not assumed — so Bronze/Silver/Gold run as SQL rather than PySpark notebooks driven by API |
-| Transformation (Phase 3) | dbt Core (dbt-databricks adapter) | Same Gold layer, rebuilt with tests, docs, and incremental models |
+| Bronze landing | SQL via the Databricks SQL warehouse (`read_files()`, `COPY INTO`) | This project's access token is scoped to SQL only — confirmed by testing, not assumed — so Bronze runs as SQL rather than a PySpark notebook driven by API |
+| Silver + Gold transforms | dbt Core (dbt-databricks adapter) | 8 staging models, 1 intermediate (reconciliation) model, 8 marts, 31 tests, 1 incremental fact table — this is what the scheduled pipeline actually runs now, replacing the earlier hand-written SQL |
 | BI | Tableau Public | Operational dashboards published from Gold-layer extracts |
 | CI/CD (Phase 5) | GitHub Actions | Lint + unit tests, `dbt build` against a CI schema on every PR |
 | ML (Phase 5, secondary) | scikit-learn / XGBoost | Small delay-risk classifier — not the focus |
@@ -73,15 +73,23 @@ blank) live in [PROJECT_PLAN.md](PROJECT_PLAN.md).
 
 Not a plan — real output from the live pipeline:
 
-- **Bronze**: 6 Delta tables in `workspace.bronze` — 137 routes, 1,214 stops, 65,916
-  trips, 1,208,729 scheduled stop-times, 2,916 realtime trip-stop updates
-- **Silver**: 98.1% of realtime records reconcile directly against the static
-  schedule on `trip_id`; the rest are flagged as orphans, not dropped
-- **Gold**: a working star schema, using TfNSW's actual published on-time standard
-  (within 5 minutes) rather than an arbitrary threshold
+- **Bronze**: 7 Delta tables in `workspace.bronze` — 137 routes, 1,214 stops, 65,916
+  trips, 1,208,729 scheduled stop-times, plus growing realtime trip-stop updates and
+  service alerts, accumulating every 15 minutes via the scheduled pipeline
+- **Silver + Gold, now dbt-managed**: 21,475 trip-stop observations (and growing)
+  across 2 days, reconciled against the static schedule. A clean `dbt build`: **46
+  passed, 0 errors**, 31 tests total
+- **Three real things dbt's tests caught on real data** (not hypothetical): a
+  `REPLACEMENT` schedule_relationship value TfNSW uses for bus-replaces-train
+  services that wasn't in the initial accepted-values list; a uniqueness violation
+  (1,348 rows) from TfNSW reporting `stop_sequence=0` for every stop on some NSW
+  TrainLink intercity trips; and a schema conflict from cutting the scheduled
+  pipeline over from hand-written SQL to dbt. Full detail in
+  [dbt_transit/README.md](dbt_transit/README.md) and [ROADMAP.md](ROADMAP.md).
 - **A real finding**: on 2026-09-16, Sydney Trains' STH line ran 0% on-time with a
   ~39-minute average delay — captured live, not a synthetic example
-- **5 passing unit tests** on the GTFS-Realtime protobuf decode logic
+- **9 passing unit tests** on the GTFS-Realtime protobuf decode logic (trip updates
+  + service alerts), plus 31 dbt tests on the transformed data
 - **Live dashboards on Tableau Public**:
   - [Network Reliability Overview](https://public.tableau.com/app/profile/mahesh.sai.kandula7753/viz/SydneyTrains-NetworkReliability/NetworkReliabilityOverview) — on-time % and average delay by route, sorted worst to best
   - [Business Impact](https://public.tableau.com/app/profile/mahesh.sai.kandula7753/viz/SydneyTrains-NetworkReliability/BusinessImpact) — the Pareto (delay concentration) and alert-delay-impact findings below, visualized
@@ -133,7 +141,7 @@ ingestion/          Python: TfNSW ingestion, Databricks volume upload, Bronze/
 scripts/            run_pipeline.sh — the scheduled ingestion entry point
 notebooks/           Optional PySpark path for working directly in the Databricks
                      UI (unexecuted — Phase 1 runs entirely via ingestion/)
-dbt_transit/         dbt project scaffold — models arrive in Phase 3
+dbt_transit/         dbt project — live, runs Silver + Gold on every scheduled tick
 tableau/extracts/    Gold-layer CSVs, ready for Tableau Public
 tests/               pytest unit tests
 docs/data_model.md   Star schema reference — grain, keys, columns
@@ -152,12 +160,22 @@ Databricks Free Edition), then:
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+pip install dbt-core dbt-databricks   # or: pip install -r dbt_transit/requirements.txt
 cp .env.example .env   # fill in your own keys — never commit this file
+cp dbt_transit/profiles.yml.example ~/.dbt/profiles.yml   # fill in your username
 
 python ingestion/gtfs_static_ingest.py
 python ingestion/gtfs_rt_ingest.py
+python ingestion/gtfs_alerts_ingest.py
 python ingestion/land_bronze.py
-python ingestion/build_silver.py
-python ingestion/build_gold.py
+
+cd dbt_transit && set -a && source ../.env && set +a
+dbt deps && dbt build
+cd ..
+
 python ingestion/export_gold_extracts.py
 ```
+
+Or just run [scripts/run_pipeline.sh](scripts/run_pipeline.sh), which does the
+realtime/dbt/export steps above in order — that's exactly what the scheduled job
+runs (see [docs/scheduled_ingestion.md](docs/scheduled_ingestion.md)).

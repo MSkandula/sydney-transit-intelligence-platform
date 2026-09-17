@@ -1,4 +1,10 @@
-"""Build the Silver reconciliation table: one row per (trip, stop) actually observed
+"""SUPERSEDED by dbt_transit/models/intermediate/int_trip_stop_performance.sql —
+kept here as the Phase 1 MVP reference, not run by scripts/run_pipeline.sh anymore.
+Running this against the same silver schema dbt now owns would conflict with it;
+see dbt_transit/README.md. Safe to run standalone against a throwaway schema if you
+want to compare approaches, not against the live silver/gold schemas.
+
+Build the Silver reconciliation table: one row per (trip, stop) actually observed
 in the realtime feed, joined against the static schedule it belongs to.
 
 Runs as SQL over the same Databricks SQL warehouse connection as land_bronze.py, for
