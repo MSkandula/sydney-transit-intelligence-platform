@@ -159,8 +159,11 @@ vehicle positions or alerts yet), 1–2 weeks of captured data.
     alert data now backing them (`fact_service_alerts`, `mart_alert_delay_impact`)
     already exists via dbt, so this is mostly a Tableau-building session, not new
     data engineering
-- ⬜ KPI definitions doc + data dictionary — the KPIs themselves are documented
-  inline in README.md/data_model.md; a standalone reference doc doesn't exist yet
+- ✅ KPI definitions doc: [docs/kpi_definitions.md](../docs/kpi_definitions.md) —
+  precise definition of every metric used across the dashboards and the
+  business-impact findings, including the deliberate design choices behind each
+  one (e.g. why orphan trips are flagged not filtered, why delay concentration
+  uses positive delay only)
 
 ## Phase 5 — Production-quality features
 - ✅ GitHub Actions CI:

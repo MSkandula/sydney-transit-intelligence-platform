@@ -27,31 +27,31 @@ Sydney-specific data source instead of a generic dataset.
 ## Architecture
 
 ```
-TfNSW Open Data Hub (GTFS static + GTFS-Realtime v2)
+TfNSW Open Data Hub (GTFS static + GTFS-Realtime v2, trip updates + alerts)
         │
         ▼
-Python ingestion  ──────────────►  local landing (data/, git-ignored)
+Python ingestion  ──►  Databricks Unity Catalog volume (bronze.raw_landing)
         │
         ▼
-Databricks Unity Catalog volume (workspace.bronze.raw_landing)
+BRONZE   7 Delta tables — read_files() for static, COPY INTO for realtime
+        │                 (COPY INTO tracks already-loaded files itself)
+        ▼
+dbt Core: staging (8 views) → silver (reconciliation) → gold (8 marts,
+          1 incremental fact table, 31 tests) — this is what the scheduled
+          pipeline actually runs, replacing the earlier hand-written SQL
         │
-        ▼
-BRONZE   Delta tables — read_files() for static, COPY INTO for realtime
-        ▼                (COPY INTO tracks already-loaded files itself —
-SILVER   Delta tables —  that's the incremental-loading mechanism, not a
-         dedup + schedule  manual reimplementation of one)
-         reconciliation
-        ▼
-GOLD     star schema — dim_date / dim_route / dim_stop /
-         fact_trip_stop_performance / mart_route_daily_performance
-        │
-        ▼
-CSV extracts  ──────────────►  Tableau Public dashboards
+        ├──► ml/ — small delay-risk classifier (secondary, honest results)
+        └──► CSV extracts ──► Tableau Public (2 published dashboards)
+
+Scheduled every 15 min by a local launchd job. GitHub Actions runs ruff + pytest
+on every push, and dbt build against an isolated CI schema on every dbt PR.
 ```
 
-Everything runs on free tooling: Databricks Free Edition (serverless SQL
-warehouse + Unity Catalog), GitHub Actions, and Tableau Public. No paid cloud
-services anywhere in the stack.
+See [docs/architecture.md](docs/architecture.md) for the full diagram (Mermaid,
+renders inline on GitHub) and why a few pieces ended up different from the
+original plan. Everything runs on free tooling: Databricks Free Edition
+(serverless SQL warehouse + Unity Catalog), GitHub Actions, and Tableau Public.
+No paid cloud services anywhere in the stack.
 
 ## Tech stack
 
@@ -145,7 +145,9 @@ dbt_transit/         dbt project — live, runs Silver + Gold on every scheduled
 ml/                  Small, secondary delay-risk classifier — real results, reported honestly
 tableau/extracts/    Gold-layer CSVs, ready for Tableau Public
 tests/               pytest unit tests
+docs/architecture.md  Full architecture diagram (Mermaid) and why it changed from the plan
 docs/data_model.md   Star schema reference — grain, keys, columns
+docs/kpi_definitions.md  Precise definition of every KPI used in the dashboards
 docs/scheduled_ingestion.md  How the local launchd job works, and its real limits
 .github/workflows/   CI/CD — ruff + pytest, and dbt build/test on an isolated CI schema
 PROJECT_PLAN.md      Full design doc: business case → interview prep
