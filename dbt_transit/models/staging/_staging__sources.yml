@@ -15,4 +15,16 @@ sources:
       - name: gtfs_static_stop_times
       - name: gtfs_static_calendar
       - name: gtfs_rt_trip_updates
+        description: Polled every 15 min by the scheduled pipeline — see docs/scheduled_ingestion.md.
+        config:
+          loaded_at_field: _ingested_at
+          freshness:
+            warn_after: {count: 30, period: minute}
+            error_after: {count: 90, period: minute}
       - name: gtfs_service_alerts
+        description: Polled every 15 min by the scheduled pipeline — see docs/scheduled_ingestion.md.
+        config:
+          loaded_at_field: _ingested_at
+          freshness:
+            warn_after: {count: 30, period: minute}
+            error_after: {count: 90, period: minute}

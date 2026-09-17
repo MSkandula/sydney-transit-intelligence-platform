@@ -191,7 +191,12 @@ vehicle positions or alerts yet), 1–2 weeks of captured data.
   arguably the natural end state for a portfolio project anyway — but repo
   visibility is the kind of call that's the project owner's to make, not mine to
   decide autonomously. Pending that decision.
-- ⬜ Expand DQ suite + add the Pipeline Health Tableau tab
+- 🟨 Expand DQ suite: ✅ `dbt source freshness` added on `gtfs_rt_trip_updates` and
+  `gtfs_service_alerts` (warn >30min stale, error >90min — sized around the 15-min
+  poll interval), run as a non-blocking diagnostic step in the scheduled pipeline
+  itself, not just available on demand. The Pipeline Health Tableau tab (visualizing
+  this + the orphan/outlier rates already tracked in Silver) still needs your hands
+  in Tableau, same as the other pending dashboard work.
 - ✅ Small ML delay-risk model ([ml/train_delay_risk_model.py](../ml/train_delay_risk_model.py)):
   Logistic Regression vs. Random Forest, temporal train/test split (day 1 → day
   2), class-imbalance-aware evaluation, scored into `gold.mart_trip_delay_risk_score`.

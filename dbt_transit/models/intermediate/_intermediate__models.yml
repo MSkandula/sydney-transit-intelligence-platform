@@ -8,4 +8,5 @@ models:
       which is exactly the bug this model already fixed once in Phase 1.
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns: [service_date, trip_id, stop_id, stop_sequence]
+          arguments:
+            combination_of_columns: [service_date, trip_id, stop_id, stop_sequence]

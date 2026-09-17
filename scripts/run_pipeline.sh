@@ -32,6 +32,10 @@ echo "===== $(date -u +%Y-%m-%dT%H:%M:%SZ) =====" >> "$LOG_FILE"
 "$PYTHON" ingestion/gtfs_alerts_ingest.py >> "$LOG_FILE" 2>&1
 "$PYTHON" ingestion/land_bronze.py >> "$LOG_FILE" 2>&1
 "$DBT" build --project-dir "$PROJECT_DIR/dbt_transit" --profiles-dir ~/.dbt >> "$LOG_FILE" 2>&1
+# Non-blocking diagnostic — a stale realtime source (>30min old) means the API or
+# the scheduled job itself is having trouble, worth seeing in the log even though
+# `dbt build` above already succeeded/failed independently of this check.
+"$DBT" source freshness --project-dir "$PROJECT_DIR/dbt_transit" --profiles-dir ~/.dbt >> "$LOG_FILE" 2>&1
 "$PYTHON" ingestion/export_gold_extracts.py >> "$LOG_FILE" 2>&1
 
 echo "===== done $(date -u +%Y-%m-%dT%H:%M:%SZ) =====" >> "$LOG_FILE"

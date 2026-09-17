@@ -8,7 +8,8 @@ models:
       - name: route_type
         tests:
           - accepted_values:
-              values: [0, 2, 3, 4]
+              arguments:
+                values: [0, 2, 3, 4]
               config:
                 severity: warn # other GTFS route_types exist; warn, don't fail the build
 
@@ -24,19 +25,22 @@ models:
       - name: route_id
         tests:
           - relationships:
-              to: ref('stg_gtfs_static_routes')
-              field: route_id
+              arguments:
+                to: ref('stg_gtfs_static_routes')
+                field: route_id
 
   - name: stg_gtfs_static_stop_times
     columns:
       - name: trip_id
         tests:
           - relationships:
-              to: ref('stg_gtfs_static_trips')
-              field: trip_id
+              arguments:
+                to: ref('stg_gtfs_static_trips')
+                field: trip_id
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns: [trip_id, stop_sequence]
+          arguments:
+            combination_of_columns: [trip_id, stop_sequence]
 
   - name: stg_gtfs_rt_trip_updates
     columns:
@@ -47,10 +51,11 @@ models:
       - name: schedule_relationship
         tests:
           - accepted_values:
-              # REPLACEMENT found via this test failing on the first real dbt build
-              # — TfNSW uses it for bus-replaces-train services (matches the
-              # "Buses replace trains between X and Y" alerts in gtfs_service_alerts)
-              values: ["SCHEDULED", "SKIPPED", "CANCELED", "ADDED", "DUPLICATED", "REPLACEMENT"]
+              arguments:
+                # REPLACEMENT found via this test failing on the first real dbt build
+                # — TfNSW uses it for bus-replaces-train services (matches the
+                # "Buses replace trains between X and Y" alerts in gtfs_service_alerts)
+                values: ["SCHEDULED", "SKIPPED", "CANCELED", "ADDED", "DUPLICATED", "REPLACEMENT"]
 
   - name: stg_gtfs_service_alerts
     columns:
@@ -59,16 +64,17 @@ models:
       - name: cause
         tests:
           - accepted_values:
-              values:
-                - UNKNOWN_CAUSE
-                - OTHER_CAUSE
-                - TECHNICAL_PROBLEM
-                - STRIKE
-                - DEMONSTRATION
-                - ACCIDENT
-                - HOLIDAY
-                - WEATHER
-                - MAINTENANCE
-                - CONSTRUCTION
-                - POLICE_ACTIVITY
-                - MEDICAL_EMERGENCY
+              arguments:
+                values:
+                  - UNKNOWN_CAUSE
+                  - OTHER_CAUSE
+                  - TECHNICAL_PROBLEM
+                  - STRIKE
+                  - DEMONSTRATION
+                  - ACCIDENT
+                  - HOLIDAY
+                  - WEATHER
+                  - MAINTENANCE
+                  - CONSTRUCTION
+                  - POLICE_ACTIVITY
+                  - MEDICAL_EMERGENCY
