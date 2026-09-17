@@ -11,8 +11,19 @@ Service Alerts & Impact, and optionally a Pipeline Health tab.
 
 ## Published
 
-- **Network Reliability Overview** — [live on Tableau Public](https://public.tableau.com/app/profile/mahesh.sai.kandula7753/viz/SydneyTrains-NetworkReliability/NetworkReliabilityOverview).
+Both dashboards below live in the same Tableau Public workbook
+(`SydneyTrains-NetworkReliability`), each with its own shareable URL.
+
+- **Network Reliability Overview** — [live](https://public.tableau.com/app/profile/mahesh.sai.kandula7753/viz/SydneyTrains-NetworkReliability/NetworkReliabilityOverview).
   Two views built from `extracts/mart_route_daily_performance.csv`: on-time % by
   route (red→green diverging, worst at top) and average delay in minutes by route
-  (sequential red, worst at top). Snapshot dashboard for 2026-09-16 — no trend line
-  yet since only one day of realtime data has been captured so far (see ROADMAP.md).
+  (sequential red, worst at top).
+- **Business Impact** — [live](https://public.tableau.com/app/profile/mahesh.sai.kandula7753/viz/SydneyTrains-NetworkReliability/BusinessImpact).
+  A Pareto chart (`extracts/mart_line_delay_concentration.csv`: bars for delay
+  minutes + a dual-axis cumulative % line) and a diverging bar chart
+  (`extracts/mart_alert_delay_impact.csv`: which alerts correlate with a real
+  measured delay lift vs. baseline, colored red=worse/green=better).
+
+Both grow more meaningful as `scripts/run_pipeline.sh` accumulates more history —
+see ROADMAP.md for current row counts, which will be out of date by the time you
+read this (that's expected; re-run `export_gold_extracts.py` for current numbers).

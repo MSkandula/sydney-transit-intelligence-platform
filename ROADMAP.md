@@ -50,10 +50,18 @@ vehicle positions or alerts yet), 1–2 weeks of captured data.
   On-time threshold (300s / 5 min) matches TfNSW's own published "Customer On-Time"
   standard, not an arbitrary number — verified via transport.nsw.gov.au, not memory
   (an earlier draft used a misremembered 5:59 threshold, corrected before shipping)
-- ✅ One Tableau Public dashboard: [Network Reliability Overview](https://public.tableau.com/app/profile/mahesh.sai.kandula7753/viz/SydneyTrains-NetworkReliability/NetworkReliabilityOverview)
-  — on-time % by route and avg delay by route, both sorted worst-to-best, built from
-  `mart_route_daily_performance.csv`. Published 2026-09-17 as a single-day snapshot
-  (no trend line yet — see "one real insight" note above on why)
+- ✅ Two Tableau Public dashboards, same workbook:
+  1. [Network Reliability Overview](https://public.tableau.com/app/profile/mahesh.sai.kandula7753/viz/SydneyTrains-NetworkReliability/NetworkReliabilityOverview)
+     — on-time % by route and avg delay by route, both sorted worst-to-best, built
+     from `mart_route_daily_performance.csv`
+  2. [Business Impact](https://public.tableau.com/app/profile/mahesh.sai.kandula7753/viz/SydneyTrains-NetworkReliability/BusinessImpact)
+     — a proper Pareto chart (bars + cumulative % line, dual axis) for
+     `mart_line_delay_concentration`, and a diverging bar chart for
+     `mart_alert_delay_impact`. Both built collaboratively — real trial and error
+     worth noting: a field landing on the wrong shelf (Columns instead of Rows),
+     color encoding defaulting to discrete instead of continuous (fixed by
+     Option-dragging the already-continuous pill instead of a fresh one from the
+     Data pane), and a reversed diverging color scale twice, once per chart.
 - ✅ README + PROJECT_PLAN in the repo, basic pytest for the protobuf decode step
 - ✅ Real insights this phase found:
   1. On 2026-09-16, the **STH line (CTY_S1c)** ran 0% on-time with a ~39-minute
