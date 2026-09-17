@@ -82,6 +82,7 @@ Not a plan — real output from the live pipeline:
 - **A real finding**: on 2026-09-16, Sydney Trains' STH line ran 0% on-time with a
   ~39-minute average delay — captured live, not a synthetic example
 - **5 passing unit tests** on the GTFS-Realtime protobuf decode logic
+- **Live dashboard**: [Network Reliability Overview on Tableau Public](https://public.tableau.com/app/profile/mahesh.sai.kandula7753/viz/SydneyTrains-NetworkReliability/NetworkReliabilityOverview) — on-time % and average delay by route, sorted worst to best
 
 See [ROADMAP.md](ROADMAP.md) for the full, currently-accurate status per phase.
 
