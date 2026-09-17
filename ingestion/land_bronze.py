@@ -9,9 +9,9 @@ PermissionDenied on Free Edition), so the SQL warehouse is the one thing this to
 drive end-to-end. `read_files()` and `COPY INTO` cover everything Bronze needs to do:
 - Static schedule: full CREATE OR REPLACE per run (matches the design — TfNSW
   republishes ~weekly and Bronze always reflects the single latest snapshot landed).
-- Realtime trip updates: COPY INTO, which tracks already-loaded files itself — this
-  *is* the incremental loading mechanism described in PROJECT_PLAN.md §10, not a
-  manual watermark reimplementation.
+- Realtime trip updates + service alerts: COPY INTO, which tracks already-loaded
+  files itself — this *is* the incremental loading mechanism described in
+  PROJECT_PLAN.md §10, not a manual watermark reimplementation.
 
 A separate PySpark notebook (notebooks/bronze/land_gtfs_bronze.py) covers the same
 ground for when this is run inside the Databricks UI directly (full workspace-session
@@ -100,43 +100,66 @@ def land_static_bronze(cur) -> None:
         log.info("%s: %d rows (feed_version=%s)", table_name, row_count, feed_version)
 
 
-def land_realtime_bronze(cur) -> None:
-    target = f"{CATALOG}.bronze.gtfs_rt_trip_updates"
-    source_glob = f"{BRONZE_VOLUME}/gtfs_rt_trip_updates/{AGENCY}/"
+def land_parquet_bronze(cur, table_name: str, volume_subdir: str, ddl_columns: str) -> None:
+    """Append-only Bronze landing for any parquet snapshot feed via COPY INTO.
+    Shared by trip updates and service alerts — same feed shape (protobuf FeedMessage
+    decoded to one Parquet snapshot per poll), same incremental-loading mechanism."""
+    target = f"{CATALOG}.bronze.{table_name}"
+    source_glob = f"{BRONZE_VOLUME}/{volume_subdir}/{AGENCY}/"
 
-    cur.execute(
-        f"""
-        CREATE TABLE IF NOT EXISTS {target} (
-            entity_id STRING,
-            trip_id STRING,
-            route_id STRING,
-            start_date STRING,
-            schedule_relationship STRING,
-            stop_id STRING,
-            stop_sequence BIGINT,
-            arrival_delay_seconds DOUBLE,
-            arrival_time DOUBLE,
-            departure_delay_seconds DOUBLE,
-            departure_time DOUBLE,
-            stop_schedule_relationship STRING,
-            feed_timestamp TIMESTAMP,
-            _ingested_at TIMESTAMP,
-            dt DATE
-        ) USING DELTA
-        """
-    )
-    cur.execute(
-        f"""
-        COPY INTO {target}
-        FROM '{source_glob}'
-        FILEFORMAT = PARQUET
-        """
-    )
-    result = cur.fetchall()
-    log.info("COPY INTO result: %s", result)
+    cur.execute(f"CREATE TABLE IF NOT EXISTS {target} ({ddl_columns}) USING DELTA")
+    cur.execute(f"COPY INTO {target} FROM '{source_glob}' FILEFORMAT = PARQUET")
+    log.info("%s COPY INTO result: %s", table_name, cur.fetchall())
 
     cur.execute(f"SELECT count(*) FROM {target}")
     log.info("%s now has %d total rows", target, cur.fetchone()[0])
+
+
+def land_realtime_bronze(cur) -> None:
+    land_parquet_bronze(
+        cur,
+        "gtfs_rt_trip_updates",
+        "gtfs_rt_trip_updates",
+        """
+        entity_id STRING,
+        trip_id STRING,
+        route_id STRING,
+        start_date STRING,
+        schedule_relationship STRING,
+        stop_id STRING,
+        stop_sequence BIGINT,
+        arrival_delay_seconds DOUBLE,
+        arrival_time DOUBLE,
+        departure_delay_seconds DOUBLE,
+        departure_time DOUBLE,
+        stop_schedule_relationship STRING,
+        feed_timestamp TIMESTAMP,
+        _ingested_at TIMESTAMP,
+        dt DATE
+        """,
+    )
+
+
+def land_alerts_bronze(cur) -> None:
+    land_parquet_bronze(
+        cur,
+        "gtfs_service_alerts",
+        "gtfs_service_alerts",
+        """
+        entity_id STRING,
+        cause STRING,
+        effect STRING,
+        header_text STRING,
+        description_text STRING,
+        route_id STRING,
+        stop_id STRING,
+        trip_id STRING,
+        active_period_start TIMESTAMP,
+        active_period_end TIMESTAMP,
+        _ingested_at TIMESTAMP,
+        dt DATE
+        """,
+    )
 
 
 def main() -> int:
@@ -146,6 +169,7 @@ def main() -> int:
         cur.execute(f"USE CATALOG {CATALOG}")
         land_static_bronze(cur)
         land_realtime_bronze(cur)
+        land_alerts_bronze(cur)
         cur.close()
     finally:
         conn.close()

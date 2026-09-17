@@ -21,6 +21,7 @@ cd "$PROJECT_DIR" || exit 1
 echo "===== $(date -u +%Y-%m-%dT%H:%M:%SZ) =====" >> "$LOG_FILE"
 
 "$PYTHON" ingestion/gtfs_rt_ingest.py >> "$LOG_FILE" 2>&1
+"$PYTHON" ingestion/gtfs_alerts_ingest.py >> "$LOG_FILE" 2>&1
 "$PYTHON" ingestion/land_bronze.py >> "$LOG_FILE" 2>&1
 "$PYTHON" ingestion/build_silver.py >> "$LOG_FILE" 2>&1
 "$PYTHON" ingestion/build_gold.py >> "$LOG_FILE" 2>&1

@@ -15,6 +15,9 @@ Tables built here (grain documented in docs/data_model.md):
 - gold.mart_line_delay_concentration  line-level Pareto: what share of total
                         network delay-minutes each line is responsible for —
                         the headline business-impact finding (see README.md)
+- gold.fact_service_alerts   one row per (alert, route) from gtfs_service_alerts
+- gold.mart_alert_delay_impact  does an active alert correlate with a real delay
+                        spike on that route, vs. its own baseline? (PROJECT_PLAN §3)
 """
 
 import logging
@@ -113,6 +116,26 @@ def build_fact(cur) -> None:
     )
 
 
+def build_alerts_fact(cur) -> None:
+    cur.execute(
+        f"""
+        CREATE OR REPLACE TABLE {CATALOG}.gold.fact_service_alerts AS
+        SELECT DISTINCT
+            entity_id AS alert_id,
+            cause,
+            effect,
+            header_text,
+            description_text,
+            route_id,
+            xxhash64(route_id) AS route_key,
+            active_period_start,
+            active_period_end
+        FROM {CATALOG}.bronze.gtfs_service_alerts
+        WHERE route_id IS NOT NULL AND route_id != ''
+        """
+    )
+
+
 def build_marts(cur) -> None:
     cur.execute(
         f"""
@@ -173,6 +196,55 @@ def build_marts(cur) -> None:
         """
     )
 
+    # Business question from PROJECT_PLAN.md §3: do disruption alerts actually
+    # correlate with measurable delay, or is impact overstated/understated? Compares
+    # each route's average delay *during* an alert's active window against that same
+    # route's overall baseline average — only alerts with both a start and end time
+    # (roughly half the feed; open-ended station notices are excluded, not silently
+    # merged in) produce a defined window to compare against.
+    cur.execute(
+        f"""
+        CREATE OR REPLACE TABLE {CATALOG}.gold.mart_alert_delay_impact AS
+        WITH alert_windows AS (
+            SELECT DISTINCT route_key, route_id, header_text, cause, effect,
+                   active_period_start, active_period_end
+            FROM {CATALOG}.gold.fact_service_alerts
+            WHERE active_period_start IS NOT NULL AND active_period_end IS NOT NULL
+        ),
+        delay_during_alert AS (
+            SELECT
+                a.route_id, a.header_text, a.cause, a.effect,
+                avg(f.arrival_delay_seconds) AS avg_delay_during_alert,
+                count(*) AS observations_during_alert
+            FROM alert_windows a
+            JOIN {CATALOG}.gold.fact_trip_stop_performance f
+                ON f.route_key = a.route_key
+                AND f.feed_timestamp BETWEEN a.active_period_start AND a.active_period_end
+            WHERE NOT f.is_orphan_trip
+            GROUP BY a.route_id, a.header_text, a.cause, a.effect
+        ),
+        baseline AS (
+            SELECT r.route_id, avg(f.arrival_delay_seconds) AS baseline_avg_delay
+            FROM {CATALOG}.gold.fact_trip_stop_performance f
+            JOIN {CATALOG}.gold.dim_route r ON f.route_key = r.route_key
+            WHERE NOT f.is_orphan_trip
+            GROUP BY r.route_id
+        )
+        SELECT
+            d.route_id,
+            d.header_text,
+            d.cause,
+            d.effect,
+            d.observations_during_alert,
+            round(d.avg_delay_during_alert, 1) AS avg_delay_during_alert_seconds,
+            round(b.baseline_avg_delay, 1) AS baseline_avg_delay_seconds,
+            round(d.avg_delay_during_alert - b.baseline_avg_delay, 1) AS delay_lift_seconds
+        FROM delay_during_alert d
+        JOIN baseline b ON d.route_id = b.route_id
+        ORDER BY delay_lift_seconds DESC
+        """
+    )
+
 
 def main() -> int:
     conn = connect()
@@ -189,6 +261,10 @@ def main() -> int:
         cur.execute(f"SELECT count(*) FROM {CATALOG}.gold.fact_trip_stop_performance")
         log.info("gold.fact_trip_stop_performance: %d rows", cur.fetchone()[0])
 
+        build_alerts_fact(cur)
+        cur.execute(f"SELECT count(*) FROM {CATALOG}.gold.fact_service_alerts")
+        log.info("gold.fact_service_alerts: %d rows", cur.fetchone()[0])
+
         build_marts(cur)
         cur.execute(f"SELECT * FROM {CATALOG}.gold.mart_route_daily_performance ORDER BY pct_on_time LIMIT 10")
         log.info("Worst 10 routes by pct_on_time today:")
@@ -200,6 +276,11 @@ def main() -> int:
             f"cumulative_pct_of_network_delay FROM {CATALOG}.gold.mart_line_delay_concentration"
         )
         log.info("Delay concentration by line (business-impact headline):")
+        for row in cur.fetchall():
+            log.info("  %s", row)
+
+        cur.execute(f"SELECT * FROM {CATALOG}.gold.mart_alert_delay_impact LIMIT 10")
+        log.info("Alert delay impact (does an alert correlate with real delay?):")
         for row in cur.fetchall():
             log.info("  %s", row)
 

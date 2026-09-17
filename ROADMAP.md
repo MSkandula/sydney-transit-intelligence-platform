@@ -77,7 +77,7 @@ vehicle positions or alerts yet), 1–2 weeks of captured data.
   `service_date` to the partition key (`ingestion/build_silver.py`). This is exactly
   why the scheduled job was worth building *before* moving on to more features — a
   single-snapshot pipeline can never surface a bug that only exists across days.
-- 🟨 Formalize ingestion as scheduled — pulled forward from Phase 2 into Phase 1 once
+- ✅ Formalize ingestion as scheduled — pulled forward from Phase 2 into Phase 1 once
   it became clear accumulated history (not a single snapshot) is what a real trend/
   business-impact story needs. Running as a **local launchd job**
   (`scripts/run_pipeline.sh` + `~/Library/LaunchAgents/com.mahesh.sydney-transit-ingest.plist`,
@@ -85,7 +85,24 @@ vehicle positions or alerts yet), 1–2 weeks of captured data.
   (see §5 in PROJECT_PLAN), and launchd only runs while the Mac is awake, so this
   isn't a true 24/7 scheduler. Full Databricks Workflows setup (by hand, in the UI)
   remains the honest Phase 2 target if 24/7 coverage is worth the manual setup later.
-- ⬜ Add GTFS-RT vehicle positions + service alerts feeds
+- ✅ Add GTFS-RT service alerts feed (`ingestion/gtfs_alerts_ingest.py`,
+  `v2/gtfs/alerts/sydneytrains`) — 1,160 real alert-entity records landed live,
+  genuine human-readable content ("Buses replace trains between Leppington and
+  Fairfield"). Unlocked `gold.mart_alert_delay_impact` (see README.md's second
+  business-impact finding: an 11.5-minute measured delay lift during one alert's
+  active window). Vehicle positions still not started — lower business value than
+  alerts for the "why is it late" question, deprioritized accordingly.
+  - **Real bug hit and fixed same-day**: the first `COPY INTO` failed with
+    `DELTA_FAILED_TO_MERGE_FIELDS` on `trip_id` — this feed has zero trip-level
+    alerts so far, so pandas inferred the always-null `trip_id` column as a
+    non-string dtype, conflicting with the Delta table's declared schema the moment
+    a differently-typed file landed. Fixed by explicitly casting nullable string
+    columns before writing Parquet (`ingestion/gtfs_alerts_ingest.py`). A second,
+    unrelated issue in the same debugging session: a manual run and the scheduled
+    launchd run overlapped and both hit Databricks' `RESOURCE_EXHAUSTED` (429) on
+    the staging API — expected under concurrent load, not investigated further
+    since it resolved on retry, but worth knowing before assuming two failures are
+    the same root cause.
 - ⬜ Proper Delta Lake structure across all layers (partitioning, schema evolution)
 - ⬜ Incremental loading via watermark on `_ingested_at`
 - ⬜ Expand scope beyond Sydney Trains to other modes

@@ -94,9 +94,9 @@ operational attention go first?** `gold.mart_line_delay_concentration` answers t
 directly, using the same concentration framing as the "top 10% of sellers drive
 67.6% of revenue" finding in my E-Commerce project:
 
-> **3 of Sydney Trains' 16 lines (STH, T4, SCO) are responsible for 51.0% of all
-> network delay-minutes captured so far. 6 lines account for 80.4%.**
-> (as of 2026-09-17, across 6,732 trip-stop observations spanning 2 days —
+> **3 of Sydney Trains' 16 lines (STH, T4, SCO) are responsible for 50.5% of all
+> network delay-minutes captured so far. 6 lines account for 79.0%.**
+> (as of 2026-09-17, across 7,399 trip-stop observations spanning 2 days —
 > this number updates as the scheduled pipeline accumulates more history)
 
 That's a concrete, actionable answer — fix or investigate those lines first, not
@@ -104,6 +104,20 @@ spread effort evenly across 16 — and it's recomputed automatically every time 
 pipeline runs, so it gets more statistically reliable as more history accumulates
 (see [scripts/run_pipeline.sh](scripts/run_pipeline.sh), which polls TfNSW every 15
 minutes to build that history up over time).
+
+**Second finding — do disruption alerts actually matter, or is impact overstated?**
+`gold.mart_alert_delay_impact` (from the new `gtfs_service_alerts` feed, joined
+against actual observed delay during each alert's active window) answers this with
+real correlation, not assumption:
+
+> **The "Buses replace trains between Leppington and Fairfield" maintenance alert
+> correlates with an 11.5-minute average delay increase on route IWL_1c while
+> active, versus that route's own baseline.**
+
+That's the difference between "we posted a disruption notice" and "the disruption
+notice's operational impact was actually this large" — the kind of answer that
+turns a dashboard into an evaluation of communication effectiveness, not just a
+delay tracker.
 
 ## Repository structure
 

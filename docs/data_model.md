@@ -68,15 +68,17 @@ or aggregate this table.
 dbt incremental config (Phase 3): `unique_key = (service_date, trip_id, stop_sequence)`.
 
 ### `fact_service_alerts`
-Grain: one row per alert × affected route/stop × active period.
+Grain: one row per (alert, route) — built as `SELECT DISTINCT` over
+`bronze.gtfs_service_alerts`, since the same alert is re-captured on every poll
+while it's active. Scoped to route-level alerts for now (`WHERE route_id IS NOT
+NULL`); stop-level alerts exist in Bronze but aren't modelled in Gold yet.
 | Column | Notes |
 |---|---|
-| `alert_key` (PK) | |
-| `route_key` (FK, nullable) | alert may be route-specific |
-| `stop_key` (FK, nullable) | or stop-specific |
-| `date_key` (FK) | |
-| `cause`, `effect`, `severity` | from GTFS-RT alert enums |
-| `active_start_ts`, `active_end_ts` | |
+| `alert_id` (natural key, from GTFS-RT entity id) | |
+| `route_id`, `route_key` (FK to `dim_route`) | |
+| `cause`, `effect` | from GTFS-RT alert enums — TfNSW leaves these `UNKNOWN_CAUSE`/`UNKNOWN_EFFECT` on ~half the feed (open-ended station notices), not populated on all alerts |
+| `header_text`, `description_text` | human-readable, genuinely useful for a dashboard tooltip |
+| `active_period_start`, `active_period_end` | `active_period_end` is null on ~half the feed (open-ended notices) — `mart_alert_delay_impact` only uses alerts where both are present |
 
 ## Pre-aggregated marts (Tableau-facing)
 
@@ -96,6 +98,15 @@ elsewhere. `pct_of_network_delay` and `cumulative_pct_of_network_delay` (rows
 pre-sorted worst-first) turn this into a ready-made Pareto chart — the headline
 business-impact finding for this project, recomputed automatically every pipeline
 run as more history accumulates. See README.md for the current numbers.
+
+### `mart_alert_delay_impact`
+Grain: one row per (route, alert). Answers PROJECT_PLAN.md §3's question directly:
+does an active disruption alert correlate with a measurable delay spike, or is
+impact overstated/understated? `avg_delay_during_alert_seconds` is that route's
+average delay while the alert's `active_period` window was open;
+`baseline_avg_delay_seconds` is that route's overall average across all history;
+`delay_lift_seconds` is the difference. Only computed for alerts with both a start
+and end time — see `fact_service_alerts` above for why roughly half don't qualify.
 
 ---
 
