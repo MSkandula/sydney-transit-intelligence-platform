@@ -12,6 +12,9 @@ Tables built here (grain documented in docs/data_model.md):
 - gold.fact_trip_stop_performance   grain: one row per trip-stop event, from Silver,
                         joined to the dims above for surrogate keys
 - gold.mart_route_daily_performance  route x date, pre-aggregated for Tableau
+- gold.mart_line_delay_concentration  line-level Pareto: what share of total
+                        network delay-minutes each line is responsible for —
+                        the headline business-impact finding (see README.md)
 """
 
 import logging
@@ -131,6 +134,45 @@ def build_marts(cur) -> None:
         """
     )
 
+    # Business-impact headline: which lines account for most of the network's total
+    # delay-minutes. Uses positive delay only (greatest(...,0)) — early arrivals
+    # shouldn't offset lateness elsewhere when the question is "where should
+    # operational attention go." Mirrors the concentration framing from the
+    # e-commerce project's "top 10% of sellers drive 67.6% of revenue" finding.
+    cur.execute(
+        f"""
+        CREATE OR REPLACE TABLE {CATALOG}.gold.mart_line_delay_concentration AS
+        WITH line_totals AS (
+            SELECT
+                r.route_short_name,
+                r.mode,
+                sum(greatest(f.arrival_delay_seconds, 0)) AS total_delay_seconds,
+                count(*) AS trip_stop_count
+            FROM {CATALOG}.gold.fact_trip_stop_performance f
+            JOIN {CATALOG}.gold.dim_route r ON f.route_key = r.route_key
+            WHERE NOT f.is_orphan_trip
+            GROUP BY r.route_short_name, r.mode
+        )
+        SELECT
+            route_short_name,
+            mode,
+            total_delay_seconds,
+            round(total_delay_seconds / 60, 1) AS total_delay_minutes,
+            trip_stop_count,
+            round(100.0 * total_delay_seconds / sum(total_delay_seconds) OVER (), 1)
+                AS pct_of_network_delay,
+            round(
+                100.0 * sum(total_delay_seconds) OVER (
+                    ORDER BY total_delay_seconds DESC
+                    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                ) / sum(total_delay_seconds) OVER (),
+                1
+            ) AS cumulative_pct_of_network_delay
+        FROM line_totals
+        ORDER BY total_delay_seconds DESC
+        """
+    )
+
 
 def main() -> int:
     conn = connect()
@@ -150,6 +192,14 @@ def main() -> int:
         build_marts(cur)
         cur.execute(f"SELECT * FROM {CATALOG}.gold.mart_route_daily_performance ORDER BY pct_on_time LIMIT 10")
         log.info("Worst 10 routes by pct_on_time today:")
+        for row in cur.fetchall():
+            log.info("  %s", row)
+
+        cur.execute(
+            f"SELECT route_short_name, total_delay_minutes, pct_of_network_delay, "
+            f"cumulative_pct_of_network_delay FROM {CATALOG}.gold.mart_line_delay_concentration"
+        )
+        log.info("Delay concentration by line (business-impact headline):")
         for row in cur.fetchall():
             log.info("  %s", row)
 

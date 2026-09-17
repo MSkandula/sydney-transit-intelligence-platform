@@ -45,7 +45,8 @@ vehicle positions or alerts yet), 1–2 weeks of captured data.
   5,306s max sits inside that range, worth revisiting once more data accumulates)
 - ✅ Hand-written SQL Gold tables (`ingestion/build_gold.py`, dbt deferred to Phase 3):
   `dim_date` (30 rows), `dim_route` (137), `dim_stop` (1,214),
-  `fact_trip_stop_performance` (2,916 rows), `mart_route_daily_performance`.
+  `fact_trip_stop_performance` (2,916 rows), `mart_route_daily_performance`,
+  `mart_line_delay_concentration` (the business-impact mart — see README.md).
   On-time threshold (300s / 5 min) matches TfNSW's own published "Customer On-Time"
   standard, not an arbitrary number — verified via transport.nsw.gov.au, not memory
   (an earlier draft used a misremembered 5:59 threshold, corrected before shipping)
@@ -54,15 +55,26 @@ vehicle positions or alerts yet), 1–2 weeks of captured data.
   `mart_route_daily_performance.csv`. Published 2026-09-17 as a single-day snapshot
   (no trend line yet — see "one real insight" note above on why)
 - ✅ README + PROJECT_PLAN in the repo, basic pytest for the protobuf decode step
-- 🟨 The one real insight this phase found, so far: on 2026-09-16, the **STH line
-  (CTY_S1c)** ran 0% on-time with a ~39-minute average delay, and the **T2 (IWL_1c)**
-  branch also hit 0% on-time — concrete evidence of a real service disruption
-  captured live, not a synthetic example. Also found and fixed: TfNSW's v2 feed
-  leaves `trip.start_date` empty on every record, requiring a `feed_timestamp`-based
-  fallback for `service_date` (see PROJECT_PLAN.md / ingestion/build_silver.py)
+- ✅ Real insights this phase found:
+  1. On 2026-09-16, the **STH line (CTY_S1c)** ran 0% on-time with a ~39-minute
+     average delay, and the **T2 (IWL_1c)** branch also hit 0% on-time — a real
+     service disruption captured live, not a synthetic example.
+  2. **Business-impact headline** (`gold.mart_line_delay_concentration`): 3 of 16
+     lines (STH, SHL, SCO) account for 60.8% of all network delay-minutes; 5 lines
+     account for 81%. A concrete "fix these first" answer, not just a dashboard.
+  3. Also found and fixed: TfNSW's v2 feed leaves `trip.start_date` empty on every
+     record, requiring a `feed_timestamp`-based fallback for `service_date` (see
+     PROJECT_PLAN.md / `ingestion/build_silver.py`).
 
 ## Phase 2 — Data engineering
-- ⬜ Formalize ingestion as scheduled Databricks Jobs (Workflows)
+- 🟨 Formalize ingestion as scheduled — pulled forward from Phase 2 into Phase 1 once
+  it became clear accumulated history (not a single snapshot) is what a real trend/
+  business-impact story needs. Running as a **local launchd job**
+  (`scripts/run_pipeline.sh` + `~/Library/LaunchAgents/com.mahesh.sydney-transit-ingest.plist`,
+  every 15 min), not Databricks Jobs — the project's PAT can't drive the Jobs API
+  (see §5 in PROJECT_PLAN), and launchd only runs while the Mac is awake, so this
+  isn't a true 24/7 scheduler. Full Databricks Workflows setup (by hand, in the UI)
+  remains the honest Phase 2 target if 24/7 coverage is worth the manual setup later.
 - ⬜ Add GTFS-RT vehicle positions + service alerts feeds
 - ⬜ Proper Delta Lake structure across all layers (partitioning, schema evolution)
 - ⬜ Incremental loading via watermark on `_ingested_at`

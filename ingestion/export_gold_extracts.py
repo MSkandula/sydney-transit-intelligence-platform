@@ -21,6 +21,7 @@ EXPORT_DIR = Path(__file__).resolve().parent.parent / "tableau" / "extracts"
 
 TABLES_TO_EXPORT = [
     "gold.mart_route_daily_performance",
+    "gold.mart_line_delay_concentration",
     "gold.fact_trip_stop_performance",
     "gold.dim_route",
     "gold.dim_stop",

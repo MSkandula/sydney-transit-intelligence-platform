@@ -86,17 +86,36 @@ Not a plan — real output from the live pipeline:
 
 See [ROADMAP.md](ROADMAP.md) for the full, currently-accurate status per phase.
 
+## Business impact
+
+The point of this platform isn't just "here's a dashboard" — it's answering the
+question a network performance team would actually ask: **where should limited
+operational attention go first?** `gold.mart_line_delay_concentration` answers that
+directly, using the same concentration framing as the "top 10% of sellers drive
+67.6% of revenue" finding in my E-Commerce project:
+
+> **3 of Sydney Trains' 16 lines (STH, SHL, SCO) are responsible for 60.8% of all
+> network delay-minutes captured so far. 5 lines account for 81%.**
+
+That's a concrete, actionable answer — fix or investigate those 3 lines first, not
+spread effort evenly across 16 — and it's recomputed automatically every time the
+pipeline runs, so it gets more statistically reliable as more history accumulates
+(see [scripts/run_pipeline.sh](scripts/run_pipeline.sh), which polls TfNSW every 15
+minutes to build that history up over time).
+
 ## Repository structure
 
 ```
 ingestion/          Python: TfNSW ingestion, Databricks volume upload, Bronze/
                      Silver/Gold SQL builders, Tableau extract export
+scripts/            run_pipeline.sh — the scheduled ingestion entry point
 notebooks/           Optional PySpark path for working directly in the Databricks
                      UI (unexecuted — Phase 1 runs entirely via ingestion/)
 dbt_transit/         dbt project scaffold — models arrive in Phase 3
 tableau/extracts/    Gold-layer CSVs, ready for Tableau Public
 tests/               pytest unit tests
 docs/data_model.md   Star schema reference — grain, keys, columns
+docs/scheduled_ingestion.md  How the local launchd job works, and its real limits
 .github/workflows/   CI/CD (Phase 5)
 PROJECT_PLAN.md      Full design doc: business case → interview prep
 ROADMAP.md           Phased build plan and live status

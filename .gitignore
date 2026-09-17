@@ -19,6 +19,9 @@ dbt_transit/logs/
 # databricks
 .databricks/
 
+# scheduled pipeline run logs
+logs/
+
 # data (never commit raw pulls or extracts)
 data/
 *.parquet

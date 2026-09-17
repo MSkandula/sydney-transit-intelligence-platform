@@ -87,6 +87,16 @@ Grain: route × date. `pct_on_time`, `avg_delay_seconds`, `cancellation_count`,
 ### `mart_stop_daily_performance`
 Grain: stop × date. Same measure pattern as above, at stop grain.
 
+### `mart_line_delay_concentration`
+Grain: one row per line (`route_short_name`), across all accumulated history —
+not date-partitioned, since the point is "which lines matter most overall," not a
+daily snapshot. `total_delay_minutes` sums only positive delay
+(`greatest(arrival_delay_seconds, 0)`) so early arrivals don't offset lateness
+elsewhere. `pct_of_network_delay` and `cumulative_pct_of_network_delay` (rows
+pre-sorted worst-first) turn this into a ready-made Pareto chart — the headline
+business-impact finding for this project, recomputed automatically every pipeline
+run as more history accumulates. See README.md for the current numbers.
+
 ---
 
 ## Design notes
