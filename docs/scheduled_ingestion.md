@@ -21,10 +21,12 @@ every 15 minutes would be pure waste.
 ## How it's scheduled
 
 A macOS `launchd` agent — `~/Library/LaunchAgents/com.mahesh.sydney-transit-ingest.plist`
-— runs the script every 900 seconds (15 minutes).
+(template checked in at [scripts/com.mahesh.sydney-transit-ingest.plist.example](../scripts/com.mahesh.sydney-transit-ingest.plist.example),
+since the real one lives outside the repo per-machine) — runs the script every 900
+seconds (15 minutes).
 
 ```bash
-# start it
+# copy the template, fill in your username, then:
 launchctl load ~/Library/LaunchAgents/com.mahesh.sydney-transit-ingest.plist
 
 # check it's running
@@ -36,6 +38,22 @@ launchctl unload ~/Library/LaunchAgents/com.mahesh.sydney-transit-ingest.plist
 # watch it work
 tail -f logs/pipeline.log
 ```
+
+### Two real setup problems hit getting this working (both fixed)
+
+1. **`Operation not permitted` in `logs/launchd_stderr.log`.** `~/Desktop`,
+   `~/Documents`, and `~/Downloads` are TCC-protected on modern macOS — an
+   interactive Terminal has consent to read/write there, but a `launchd` agent is a
+   different process identity and doesn't inherit it. The project originally lived
+   under `~/Desktop/`; the fix was moving it to `~/sydney-transit-intelligence-platform`
+   (unprotected), not granting Full Disk Access to `/bin/bash` (the fragile,
+   GUI-dependent alternative). Worth knowing before scheduling *any* background job
+   against a project sitting in one of those folders.
+2. **`python: command not found` in `logs/pipeline.log`.** `launchd` runs scripts
+   with a minimal `PATH` that doesn't reliably pick up `source .venv/bin/activate`.
+   Fixed by calling the venv's interpreter directly by absolute path
+   (`$PROJECT_DIR/.venv/bin/python`) instead of relying on activation — the standard,
+   robust pattern for any cron/launchd-invoked Python script.
 
 ## Honest limitations
 

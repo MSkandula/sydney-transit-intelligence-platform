@@ -6,7 +6,15 @@ the same confirmed reason (this token's scope covers `sql` only). Three things t
 step does that Bronze deliberately doesn't:
 
 1. Dedup — a trip-stop is reported in the RT feed many times before it's actually
-   reached; keep only the latest snapshot per (trip_id, stop_id, stop_sequence).
+   reached; keep only the latest snapshot per (service_date, trip_id, stop_id,
+   stop_sequence). service_date is part of the key deliberately — caught via testing
+   with real multi-day data, not assumed: Sydney Trains reuses the same trip_id
+   across different calendar days (188 trip-stops collided this way between
+   2026-09-16 and 2026-09-17), so partitioning by (trip_id, stop_id, stop_sequence)
+   alone silently collapsed yesterday's rows into today's the moment a second day of
+   data existed. A single day of data can't surface this bug — it only showed up
+   once the scheduled ingestion job (docs/scheduled_ingestion.md) accumulated a
+   second day.
 2. Reconcile — join the RT trip_id against the static trips/stop_times it references.
    Empirically, 2,860/2,916 (98.1%) of RT rows in the first live pull matched directly
    on trip_id against the current static feed version — no ID-translation layer was
@@ -45,21 +53,28 @@ def build_trip_stop_performance(cur) -> None:
     cur.execute(
         f"""
         CREATE OR REPLACE TABLE {CATALOG}.silver.trip_stop_performance AS
-        WITH latest_snapshot AS (
+        WITH bronze_with_service_date AS (
+            SELECT
+                *,
+                COALESCE(NULLIF(start_date, ''), date_format(feed_timestamp, 'yyyyMMdd'))
+                    AS service_date
+            FROM {CATALOG}.bronze.gtfs_rt_trip_updates
+        ),
+        latest_snapshot AS (
             SELECT
                 *,
                 ROW_NUMBER() OVER (
-                    PARTITION BY trip_id, stop_id, stop_sequence
+                    PARTITION BY service_date, trip_id, stop_id, stop_sequence
                     ORDER BY _ingested_at DESC
                 ) AS rn
-            FROM {CATALOG}.bronze.gtfs_rt_trip_updates
+            FROM bronze_with_service_date
         )
         SELECT
             rt.trip_id,
             rt.route_id,
             rt.stop_id,
             rt.stop_sequence,
-            COALESCE(NULLIF(rt.start_date, ''), date_format(rt.feed_timestamp, 'yyyyMMdd')) AS service_date,
+            rt.service_date,
             rt.schedule_relationship,
             rt.arrival_delay_seconds,
             rt.departure_delay_seconds,

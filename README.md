@@ -94,10 +94,12 @@ operational attention go first?** `gold.mart_line_delay_concentration` answers t
 directly, using the same concentration framing as the "top 10% of sellers drive
 67.6% of revenue" finding in my E-Commerce project:
 
-> **3 of Sydney Trains' 16 lines (STH, SHL, SCO) are responsible for 60.8% of all
-> network delay-minutes captured so far. 5 lines account for 81%.**
+> **3 of Sydney Trains' 16 lines (STH, T4, SCO) are responsible for 51.0% of all
+> network delay-minutes captured so far. 6 lines account for 80.4%.**
+> (as of 2026-09-17, across 6,732 trip-stop observations spanning 2 days —
+> this number updates as the scheduled pipeline accumulates more history)
 
-That's a concrete, actionable answer — fix or investigate those 3 lines first, not
+That's a concrete, actionable answer — fix or investigate those lines first, not
 spread effort evenly across 16 — and it's recomputed automatically every time the
 pipeline runs, so it gets more statistically reliable as more history accumulates
 (see [scripts/run_pipeline.sh](scripts/run_pipeline.sh), which polls TfNSW every 15

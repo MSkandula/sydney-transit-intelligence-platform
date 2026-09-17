@@ -10,18 +10,20 @@
 
 set -uo pipefail
 
-PROJECT_DIR="/Users/maheshkandula/Desktop/sydney-transit-intelligence-platform"
+PROJECT_DIR="/Users/maheshkandula/sydney-transit-intelligence-platform"
 LOG_FILE="$PROJECT_DIR/logs/pipeline.log"
+# launchd runs scripts with a minimal PATH that doesn't reliably pick up
+# `source .venv/bin/activate` — call the venv's own python directly instead.
+PYTHON="$PROJECT_DIR/.venv/bin/python"
 
 cd "$PROJECT_DIR" || exit 1
-source .venv/bin/activate
 
 echo "===== $(date -u +%Y-%m-%dT%H:%M:%SZ) =====" >> "$LOG_FILE"
 
-python ingestion/gtfs_rt_ingest.py >> "$LOG_FILE" 2>&1
-python ingestion/land_bronze.py >> "$LOG_FILE" 2>&1
-python ingestion/build_silver.py >> "$LOG_FILE" 2>&1
-python ingestion/build_gold.py >> "$LOG_FILE" 2>&1
-python ingestion/export_gold_extracts.py >> "$LOG_FILE" 2>&1
+"$PYTHON" ingestion/gtfs_rt_ingest.py >> "$LOG_FILE" 2>&1
+"$PYTHON" ingestion/land_bronze.py >> "$LOG_FILE" 2>&1
+"$PYTHON" ingestion/build_silver.py >> "$LOG_FILE" 2>&1
+"$PYTHON" ingestion/build_gold.py >> "$LOG_FILE" 2>&1
+"$PYTHON" ingestion/export_gold_extracts.py >> "$LOG_FILE" 2>&1
 
 echo "===== done $(date -u +%Y-%m-%dT%H:%M:%SZ) =====" >> "$LOG_FILE"

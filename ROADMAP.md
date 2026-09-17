@@ -67,6 +67,16 @@ vehicle positions or alerts yet), 1–2 weeks of captured data.
      PROJECT_PLAN.md / `ingestion/build_silver.py`).
 
 ## Phase 2 — Data engineering
+- ✅ **Real bug caught by the scheduled job's first run, fixed same-day**: Silver's
+  dedup window was `PARTITION BY trip_id, stop_id, stop_sequence` — correct with one
+  day of data, silently wrong with two. Sydney Trains reuses `trip_id` across
+  different calendar days, so the moment a second day's snapshot landed, 188
+  trip-stops from 2026-09-16 got silently collapsed into 2026-09-17's rows (Silver
+  showed 6,544 rows against Bronze's 6,732 — a mismatch that shouldn't exist since
+  Silver only dedups, it doesn't drop legitimate rows). Fixed by adding
+  `service_date` to the partition key (`ingestion/build_silver.py`). This is exactly
+  why the scheduled job was worth building *before* moving on to more features — a
+  single-snapshot pipeline can never surface a bug that only exists across days.
 - 🟨 Formalize ingestion as scheduled — pulled forward from Phase 2 into Phase 1 once
   it became clear accumulated history (not a single snapshot) is what a real trend/
   business-impact story needs. Running as a **local launchd job**
