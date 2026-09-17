@@ -179,6 +179,9 @@ vehicle positions or alerts yet), 1–2 weeks of captured data.
   sqlfluff for dbt SQL not added — ruff + dbt's own tests cover most of the value
   sqlfluff would add here, and this project's SQL is not large enough yet to
   justify a second linter with its own config to maintain
+  Both workflows verified passing on GitHub's actual infrastructure on the first
+  real push (not just locally) — `gh run watch` confirmed both green, including a
+  live GitHub Actions → Databricks connection for the dbt build.
 - ⬜ dbt docs published to GitHub Pages
 - ⬜ Expand DQ suite + add the Pipeline Health Tableau tab
 - ⬜ Small ML delay-risk model (scikit-learn/XGBoost), MLflow-logged
