@@ -20,13 +20,12 @@ actual, verified Bronze step.
 """
 
 import logging
-import os
 import sys
 import zipfile
 from pathlib import Path
 
-from databricks_upload import BRONZE_VOLUME, connect
 from config import AGENCY, LOCAL_LANDING_DIR
+from databricks_upload import BRONZE_VOLUME, connect
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)

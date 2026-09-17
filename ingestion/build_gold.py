@@ -272,7 +272,10 @@ def main() -> int:
         log.info("gold.fact_service_alerts: %d rows", cur.fetchone()[0])
 
         build_marts(cur)
-        cur.execute(f"SELECT * FROM {CATALOG}.gold.mart_route_daily_performance ORDER BY pct_on_time LIMIT 10")
+        cur.execute(
+            f"SELECT * FROM {CATALOG}.gold.mart_route_daily_performance "
+            "ORDER BY pct_on_time LIMIT 10"
+        )
         log.info("Worst 10 routes by pct_on_time today:")
         for row in cur.fetchall():
             log.info("  %s", row)

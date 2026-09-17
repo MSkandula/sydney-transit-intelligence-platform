@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 import pytest
 from google.protobuf.message import DecodeError
 from google.transit import gtfs_realtime_pb2
-
 from gtfs_rt_ingest import decode_feed, feed_to_records
 
 

@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 
 from google.transit import gtfs_realtime_pb2
-
 from gtfs_alerts_ingest import decode_feed, feed_to_records
 
 

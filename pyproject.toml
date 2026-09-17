@@ -1,0 +1,12 @@
+[tool.ruff]
+line-length = 100
+exclude = [
+    "dbt_transit/target",
+    "dbt_transit/dbt_packages",
+    "data",
+    "notebooks",  # Databricks notebook source — relies on the `spark` global
+                  # injected by the Databricks runtime, not valid standalone Python
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]  # pyflakes + pycodestyle errors + import sorting

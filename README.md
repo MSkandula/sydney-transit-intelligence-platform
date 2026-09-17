@@ -62,7 +62,7 @@ services anywhere in the stack.
 | Bronze landing | SQL via the Databricks SQL warehouse (`read_files()`, `COPY INTO`) | This project's access token is scoped to SQL only — confirmed by testing, not assumed — so Bronze runs as SQL rather than a PySpark notebook driven by API |
 | Silver + Gold transforms | dbt Core (dbt-databricks adapter) | 8 staging models, 1 intermediate (reconciliation) model, 8 marts, 31 tests, 1 incremental fact table — this is what the scheduled pipeline actually runs now, replacing the earlier hand-written SQL |
 | BI | Tableau Public | Operational dashboards published from Gold-layer extracts |
-| CI/CD (Phase 5) | GitHub Actions | Lint + unit tests, `dbt build` against a CI schema on every PR |
+| CI/CD | GitHub Actions | ruff + pytest on every push/PR; `dbt build` against an isolated `ci` schema on every PR touching `dbt_transit/` |
 | ML (Phase 5, secondary) | scikit-learn / XGBoost | Small delay-risk classifier — not the focus |
 
 Full design rationale, including two things discovered only by actually building
@@ -146,7 +146,7 @@ tableau/extracts/    Gold-layer CSVs, ready for Tableau Public
 tests/               pytest unit tests
 docs/data_model.md   Star schema reference — grain, keys, columns
 docs/scheduled_ingestion.md  How the local launchd job works, and its real limits
-.github/workflows/   CI/CD (Phase 5)
+.github/workflows/   CI/CD — ruff + pytest, and dbt build/test on an isolated CI schema
 PROJECT_PLAN.md      Full design doc: business case → interview prep
 ROADMAP.md           Phased build plan and live status
 PREREQUISITES.md     Accounts/tools needed to run this yourself

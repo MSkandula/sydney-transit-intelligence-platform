@@ -19,10 +19,9 @@ from datetime import datetime, timezone
 
 import pandas as pd
 import requests
-from google.transit import gtfs_realtime_pb2
-
 from config import AGENCY, LOCAL_LANDING_DIR, auth_headers
 from databricks_upload import upload_to_volume
+from google.transit import gtfs_realtime_pb2
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)

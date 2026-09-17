@@ -13,7 +13,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
-
 from config import AGENCY, GTFS_SCHEDULE_BASE_URL, LOCAL_LANDING_DIR, auth_headers
 from databricks_upload import upload_to_volume
 

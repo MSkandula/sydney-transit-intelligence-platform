@@ -147,13 +147,38 @@ vehicle positions or alerts yet), 1–2 weeks of captured data.
      the intended outcome of the cutover, not a workaround.
 
 ## Phase 4 — BI
-- ⬜ Build out all 3 Tableau dashboards (Overview, Route/Stop Deep Dive, Service Alerts)
-- ⬜ KPI definitions doc + data dictionary
-- ⬜ Publish to Tableau Public with screenshots in `tableau/`
+- ✅ 2 of 3 planned dashboards published to Tableau Public with screenshots in
+  `tableau/screenshots/` (fetched from Tableau's own auto-generated preview
+  thumbnails — the embedded JS viz doesn't render in an automated browser, a
+  bot-detection issue on Tableau's end):
+  - [Network Reliability Overview](https://public.tableau.com/app/profile/mahesh.sai.kandula7753/viz/SydneyTrains-NetworkReliability/NetworkReliabilityOverview) —
+    on-time % and avg delay by route
+  - [Business Impact](https://public.tableau.com/app/profile/mahesh.sai.kandula7753/viz/SydneyTrains-NetworkReliability/BusinessImpact) —
+    Pareto (delay concentration) + alert-delay-impact charts
+  - Route & Stop Deep Dive and a dedicated Service Alerts dashboard remain — the
+    alert data now backing them (`fact_service_alerts`, `mart_alert_delay_impact`)
+    already exists via dbt, so this is mostly a Tableau-building session, not new
+    data engineering
+- ⬜ KPI definitions doc + data dictionary — the KPIs themselves are documented
+  inline in README.md/data_model.md; a standalone reference doc doesn't exist yet
 
 ## Phase 5 — Production-quality features
-- ⬜ GitHub Actions CI: pytest + `dbt build`/`dbt test` on PR against a CI schema
-- ⬜ Linting (ruff/black, sqlfluff) in CI
+- ✅ GitHub Actions CI:
+  - [.github/workflows/ci.yml](../.github/workflows/ci.yml) — ruff + pytest on
+    every push/PR
+  - [.github/workflows/dbt-ci.yml](../.github/workflows/dbt-ci.yml) — `dbt build`
+    on every push/PR touching `dbt_transit/**`, against a dedicated `ci` schema on
+    the same Databricks warehouse (verified locally before trusting it in CI: had
+    to fix `generate_schema_name.sql` first, since the custom-schema macro would
+    otherwise have made `--target ci` write into the same schemas as dev — see the
+    macro's own comment for why)
+  - Databricks credentials added as GitHub Actions repo secrets
+    (`DATABRICKS_HOST`/`TOKEN`/`HTTP_PATH`)
+- ✅ Linting: ruff (`pyproject.toml`) — 7 pre-existing issues found and fixed
+  (unused import, unsorted imports) before wiring it into CI, so CI starts green.
+  sqlfluff for dbt SQL not added — ruff + dbt's own tests cover most of the value
+  sqlfluff would add here, and this project's SQL is not large enough yet to
+  justify a second linter with its own config to maintain
 - ⬜ dbt docs published to GitHub Pages
 - ⬜ Expand DQ suite + add the Pipeline Health Tableau tab
 - ⬜ Small ML delay-risk model (scikit-learn/XGBoost), MLflow-logged
