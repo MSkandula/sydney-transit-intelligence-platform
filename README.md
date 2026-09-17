@@ -62,7 +62,7 @@ No paid cloud services anywhere in the stack.
 | Bronze landing | SQL via the Databricks SQL warehouse (`read_files()`, `COPY INTO`) | This project's access token is scoped to SQL only — confirmed by testing, not assumed — so Bronze runs as SQL rather than a PySpark notebook driven by API |
 | Silver + Gold transforms | dbt Core (dbt-databricks adapter) | 8 staging models, 1 intermediate (reconciliation) model, 8 marts, 31 tests, 1 incremental fact table — this is what the scheduled pipeline actually runs now, replacing the earlier hand-written SQL |
 | BI | Tableau Public | Operational dashboards published from Gold-layer extracts |
-| CI/CD | GitHub Actions | ruff + pytest on every push/PR; `dbt build` against an isolated `ci` schema on every PR touching `dbt_transit/` |
+| CI/CD | GitHub Actions | ruff + pytest on every push/PR; `dbt build` against an isolated `ci` schema on every PR touching `dbt_transit/`; dbt docs auto-deployed to GitHub Pages on every push to main |
 | ML (secondary) | scikit-learn | Small delay-risk classifier, deliberately not the focus — [real results reported honestly](ml/README.md), including where it's weak |
 
 Full design rationale, including two things discovered only by actually building
@@ -93,6 +93,7 @@ Not a plan — real output from the live pipeline:
 - **Live dashboards on Tableau Public**:
   - [Network Reliability Overview](https://public.tableau.com/app/profile/mahesh.sai.kandula7753/viz/SydneyTrains-NetworkReliability/NetworkReliabilityOverview) — on-time % and average delay by route, sorted worst to best
   - [Business Impact](https://public.tableau.com/app/profile/mahesh.sai.kandula7753/viz/SydneyTrains-NetworkReliability/BusinessImpact) — the Pareto (delay concentration) and alert-delay-impact findings below, visualized
+- **Live dbt docs**: [mskandula.github.io/sydney-transit-intelligence-platform](https://mskandula.github.io/sydney-transit-intelligence-platform/) — full model lineage, column-level catalog metadata from the real warehouse, and every test description, auto-deployed on every push
 
 ![Network Reliability Overview dashboard — on-time % and average delay by route, sorted worst to best](tableau/screenshots/network_reliability_overview.png)
 

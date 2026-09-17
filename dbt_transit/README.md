@@ -39,6 +39,11 @@ dbt build     # runs models + tests together
 dbt docs generate && dbt docs serve   # browse the docs site locally
 ```
 
+Or just browse the live, auto-deployed site:
+**[mskandula.github.io/sydney-transit-intelligence-platform](https://mskandula.github.io/sydney-transit-intelligence-platform/)**
+— rebuilt on every push to main touching `dbt_transit/**` by
+[.github/workflows/dbt-docs.yml](../.github/workflows/dbt-docs.yml).
+
 Needs `~/.dbt/profiles.yml` — copy [profiles.yml.example](profiles.yml.example) there
 and fill in your username; see [PREREQUISITES.md](../PREREQUISITES.md).
 

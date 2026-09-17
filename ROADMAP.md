@@ -185,15 +185,18 @@ vehicle positions or alerts yet), 1–2 weeks of captured data.
   Both workflows verified passing on GitHub's actual infrastructure on the first
   real push (not just locally) — `gh run watch` confirmed both green, including a
   live GitHub Actions → Databricks connection for the dbt build.
-- 🟨 dbt docs → GitHub Pages: **blocked on a real, external constraint, not
-  forgotten.** `dbt docs generate` itself works (verified locally). Publishing to
-  GitHub Pages needs either a public repo or a paid GitHub plan — Pages for private
-  repos isn't available on the free tier (confirmed via the GitHub API, not
-  assumed: `422 Your current plan does not support GitHub Pages for this
-  repository`). Making the repo public would unblock this for free, and is
-  arguably the natural end state for a portfolio project anyway — but repo
-  visibility is the kind of call that's the project owner's to make, not mine to
-  decide autonomously. Pending that decision.
+- ✅ **dbt docs → GitHub Pages — live**:
+  [mskandula.github.io/sydney-transit-intelligence-platform](https://mskandula.github.io/sydney-transit-intelligence-platform/).
+  Was blocked on a real, confirmed constraint (GitHub Pages for private repos
+  needs a paid plan — `422 Your current plan does not support GitHub Pages for
+  this repository`, not assumed), unblocked once the repo went public.
+  [.github/workflows/dbt-docs.yml](../.github/workflows/dbt-docs.yml) runs `dbt
+  docs generate` (read-only against the live warehouse — describes schema, issues
+  no DDL/DML) and deploys via `actions/deploy-pages` on every push to main
+  touching `dbt_transit/**`. Verified live: catalog data populated correctly (real
+  row counts, e.g. `fact_trip_stop_performance` showing 22,916 rows / 167 KB), not
+  just that the site loads. Ran a full secret scan across git history before
+  making the repo public — clean, no Databricks token or TfNSW key ever committed.
 - 🟨 Expand DQ suite: ✅ `dbt source freshness` added on `gtfs_rt_trip_updates` and
   `gtfs_service_alerts` (warn >30min stale, error >90min — sized around the 15-min
   poll interval), run as a non-blocking diagnostic step in the scheduled pipeline
