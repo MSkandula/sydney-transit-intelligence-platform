@@ -86,6 +86,8 @@ Not a plan — real output from the live pipeline:
   - [Network Reliability Overview](https://public.tableau.com/app/profile/mahesh.sai.kandula7753/viz/SydneyTrains-NetworkReliability/NetworkReliabilityOverview) — on-time % and average delay by route, sorted worst to best
   - [Business Impact](https://public.tableau.com/app/profile/mahesh.sai.kandula7753/viz/SydneyTrains-NetworkReliability/BusinessImpact) — the Pareto (delay concentration) and alert-delay-impact findings below, visualized
 
+![Network Reliability Overview dashboard — on-time % and average delay by route, sorted worst to best](tableau/screenshots/network_reliability_overview.png)
+
 See [ROADMAP.md](ROADMAP.md) for the full, currently-accurate status per phase.
 
 ## Business impact
@@ -106,6 +108,8 @@ spread effort evenly across 16 — and it's recomputed automatically every time 
 pipeline runs, so it gets more statistically reliable as more history accumulates
 (see [scripts/run_pipeline.sh](scripts/run_pipeline.sh), which polls TfNSW every 15
 minutes to build that history up over time).
+
+![Delay Concentration Pareto chart — 3 lines account for over 50% of network delay-minutes](tableau/screenshots/business_impact.png)
 
 **Second finding — do disruption alerts actually matter, or is impact overstated?**
 `gold.mart_alert_delay_impact` (from the new `gtfs_service_alerts` feed, joined
