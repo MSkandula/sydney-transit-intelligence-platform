@@ -1,0 +1,4 @@
+# Small, secondary ML component (see PROJECT_PLAN.md §13). Kept separate from the
+# top-level requirements.txt, same reasoning as dbt_transit/requirements.txt.
+scikit-learn==1.9.1
+mlflow==3.16.1

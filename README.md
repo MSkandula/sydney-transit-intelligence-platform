@@ -63,7 +63,7 @@ services anywhere in the stack.
 | Silver + Gold transforms | dbt Core (dbt-databricks adapter) | 8 staging models, 1 intermediate (reconciliation) model, 8 marts, 31 tests, 1 incremental fact table — this is what the scheduled pipeline actually runs now, replacing the earlier hand-written SQL |
 | BI | Tableau Public | Operational dashboards published from Gold-layer extracts |
 | CI/CD | GitHub Actions | ruff + pytest on every push/PR; `dbt build` against an isolated `ci` schema on every PR touching `dbt_transit/` |
-| ML (Phase 5, secondary) | scikit-learn / XGBoost | Small delay-risk classifier — not the focus |
+| ML (secondary) | scikit-learn | Small delay-risk classifier, deliberately not the focus — [real results reported honestly](ml/README.md), including where it's weak |
 
 Full design rationale, including two things discovered only by actually building
 this (the token's SQL-only scope, and TfNSW's realtime feed leaving `start_date`
@@ -142,6 +142,7 @@ scripts/            run_pipeline.sh — the scheduled ingestion entry point
 notebooks/           Optional PySpark path for working directly in the Databricks
                      UI (unexecuted — Phase 1 runs entirely via ingestion/)
 dbt_transit/         dbt project — live, runs Silver + Gold on every scheduled tick
+ml/                  Small, secondary delay-risk classifier — real results, reported honestly
 tableau/extracts/    Gold-layer CSVs, ready for Tableau Public
 tests/               pytest unit tests
 docs/data_model.md   Star schema reference — grain, keys, columns

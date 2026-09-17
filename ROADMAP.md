@@ -182,9 +182,25 @@ vehicle positions or alerts yet), 1–2 weeks of captured data.
   Both workflows verified passing on GitHub's actual infrastructure on the first
   real push (not just locally) — `gh run watch` confirmed both green, including a
   live GitHub Actions → Databricks connection for the dbt build.
-- ⬜ dbt docs published to GitHub Pages
+- 🟨 dbt docs → GitHub Pages: **blocked on a real, external constraint, not
+  forgotten.** `dbt docs generate` itself works (verified locally). Publishing to
+  GitHub Pages needs either a public repo or a paid GitHub plan — Pages for private
+  repos isn't available on the free tier (confirmed via the GitHub API, not
+  assumed: `422 Your current plan does not support GitHub Pages for this
+  repository`). Making the repo public would unblock this for free, and is
+  arguably the natural end state for a portfolio project anyway — but repo
+  visibility is the kind of call that's the project owner's to make, not mine to
+  decide autonomously. Pending that decision.
 - ⬜ Expand DQ suite + add the Pipeline Health Tableau tab
-- ⬜ Small ML delay-risk model (scikit-learn/XGBoost), MLflow-logged
+- ✅ Small ML delay-risk model ([ml/train_delay_risk_model.py](../ml/train_delay_risk_model.py)):
+  Logistic Regression vs. Random Forest, temporal train/test split (day 1 → day
+  2), class-imbalance-aware evaluation, scored into `gold.mart_trip_delay_risk_score`.
+  **Real result, reported honestly**: ROC-AUC ~0.66, weak precision/recall (~0.13)
+  on the "late" class — expected given only 2 days of data and a small feature
+  set, and stated plainly in [ml/README.md](../ml/README.md) rather than dressed
+  up. MLflow logging attempted and confirmed unavailable (`403: ... required
+  scopes: mlflow` — same SQL-only-token pattern as everywhere else in this
+  project), not silently skipped.
 - ⬜ Architecture diagram + runbook in `docs/`
 - ⬜ *(stretch, optional)* Structured Streaming/Auto Loader for RT ingestion
 
