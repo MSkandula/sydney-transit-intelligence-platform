@@ -111,9 +111,14 @@ vehicle positions or alerts yet), 1–2 weeks of captured data.
     the staging API — expected under concurrent load, not investigated further
     since it resolved on retry, but worth knowing before assuming two failures are
     the same root cause.
-- ⬜ Proper Delta Lake structure across all layers (partitioning, schema evolution)
-- ⬜ Incremental loading via watermark on `_ingested_at`
-- ⬜ Expand scope beyond Sydney Trains to other modes
+- ✅ Proper Delta Lake structure + incremental loading — superseded by dbt rather
+  than built directly: `fact_trip_stop_performance` is dbt's one incremental
+  model (`incremental_strategy='merge'`, unique key `service_date, trip_id,
+  stop_id, stop_sequence`), which is what a hand-rolled `_ingested_at` watermark
+  would have been reaching for. These two items were written before `dbt_transit/`
+  existed and were left unchecked after the cutover — see Phase 3 below for what
+  actually replaced them.
+- ⬜ *(optional)* Expand scope beyond Sydney Trains to other modes
 
 ## Phase 3 — Analytics engineering
 - ✅ Stood up `dbt_transit/` as a real dbt Core project (dbt-databricks adapter) —
