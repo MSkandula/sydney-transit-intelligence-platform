@@ -1,5 +1,7 @@
 # Sydney Transit Intelligence Platform
 
+![Sydney Transit Intelligence Platform — four of sixteen lines account for 51% of network delay-minutes](docs/images/banner.webp)
+
 An analytics platform that ingests live public transport data from Transport for
 NSW (TfNSW) to measure, explain, and surface where Sydney's rail network is
 underperforming — and why.
