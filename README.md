@@ -149,14 +149,19 @@ Real screenshots and captured output, all stored in [docs/images/proof/](docs/im
 | Live dbt lineage: Bronze to staging to Silver to Gold facts and marts | ![dbt lineage](docs/images/proof/dbt_docs_lineage_full.jpg) |
 | CI/CD: three GitHub Actions workflows, all green | ![GitHub Actions runs](docs/images/proof/github_actions_runs.jpg) |
 | A dbt CI run that builds and tests against the real warehouse | ![dbt CI run](docs/images/proof/github_dbt_ci_run.jpg) |
-| What exists in Databricks (row counts per table) | ![Databricks inventory](docs/images/proof/databricks_inventory_query.png) |
+| **Databricks, Bronze schema**: 7 raw tables plus the `raw_landing` file volume, all owned by the project's workspace | ![Databricks Catalog, bronze schema](docs/images/proof/databricks_catalog_bronze.png) |
+| **Databricks, Gold schema**: the star schema (facts and dimensions) and the marts | ![Databricks Catalog, gold schema](docs/images/proof/databricks_catalog_gold.png) |
+| **Databricks Query History**: the pipeline's own queries (`COPY INTO`, row counts) arriving from the Python SQL connector on 29 Oct | ![Databricks Query History](docs/images/proof/databricks_query_history.png) |
+| **The headline finding reproduced with one SQL query** against `workspace.gold.mart_line_delay_concentration` (numbers move slightly as new data arrives) | ![Databricks SQL result](docs/images/proof/databricks_sql_query_result.png) |
+| Row counts per table, from a SQL query | ![Databricks inventory](docs/images/proof/databricks_inventory_query.png) |
 | One full scheduled run: ingest, load, dbt build (46 pass), health check, `done OK` | ![Pipeline run](docs/images/proof/terminal_pipeline_run.png) |
 | The scheduled job registered with macOS | ![Scheduler](docs/images/proof/terminal_scheduler.png) |
 | Tests and lint | ![Tests and lint](docs/images/proof/terminal_tests_lint.png) |
 | Where the data was lost, and why (the incident, as a chart) | ![Data coverage by day](docs/images/findings/data_coverage_by_day.png) |
 
 Terminal and query images are rendered from the real output of those commands (same text, drawn as
-an image). Browser images are genuine screenshots.
+an image). Browser and Databricks images are genuine screenshots (Databricks ones taken 29 Oct 2026
+from the project owner's own workspace, with the browser tabs cropped out).
 
 **Live links**
 - [Network Reliability Overview](https://public.tableau.com/app/profile/mahesh.sai.kandula7753/viz/SydneyTrains-NetworkReliability/NetworkReliabilityOverview) (Tableau Public)
