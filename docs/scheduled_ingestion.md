@@ -7,16 +7,23 @@ accumulates that history.
 
 ## What it runs
 
-`scripts/run_pipeline.sh` — pulls one fresh realtime snapshot and rebuilds
-Bronze → Silver → Gold → Tableau CSV exports:
+`scripts/run_pipeline.sh` runs these steps, in order, once per tick:
 
 ```
-gtfs_rt_ingest.py → land_bronze.py → build_silver.py → build_gold.py → export_gold_extracts.py
+(daily) gtfs_static_ingest.py   refresh the timetable if the newest local copy is over a day old
+gtfs_rt_ingest.py               one realtime trip-updates snapshot
+gtfs_alerts_ingest.py           one service-alerts snapshot
+land_bronze.py                  load timetable versions + new realtime files into Bronze
+dbt build                       Silver + Gold models and the 31 tests (dbt Core, run in this terminal)
+dbt source freshness            fails if realtime data is stale
+check_pipeline_health.py        fails if Gold is stale or live trips stopped matching the timetable
+export_gold_extracts.py         refresh the Tableau CSVs
 ```
 
-It deliberately does **not** re-run `gtfs_static_ingest.py` every time — the static
-schedule only changes ~weekly (see PROJECT_PLAN.md §10), so re-fetching a 10MB zip
-every 15 minutes would be pure waste.
+Each step's failure is recorded; the final log line is `done OK` or `done FAILED: <steps>`, and
+the script's exit code reflects it. The static timetable is refreshed daily, not every tick, but
+no longer "weekly or never": the first version of this pipeline fetched it once and, when
+TfNSW rotated its trip IDs, silently stopped reconciling (see the runbook's incident log).
 
 ## How it's scheduled
 

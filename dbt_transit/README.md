@@ -70,6 +70,17 @@ findings worth being able to point to directly:
    dropping the legacy table so dbt could create its own fresh — the intended
    outcome of the cutover, not a workaround.
 
+## What dbt did *not* catch
+
+All 31 tests passed for five weeks while ~100% of live trips had stopped matching the timetable.
+Orphans are flagged on purpose rather than failed, and the static timetable had gone stale, so
+nothing a dbt test looked at was wrong. It was found by looking at the analysis results.
+Lesson: tests check the rules you thought of; a health check on the *rate* of anomalies
+(`ingestion/check_pipeline_health.py`) is a separate, necessary layer. The fix also changed the
+design: Bronze keeps every timetable version, and the staging models take the newest row per key
+(`qualify row_number() ...`) so old live data can still be reconciled against the timetable that
+was current when it was recorded.
+
 ## Relationship to the Phase 1 hand-written SQL
 
 `ingestion/build_silver.py` and `ingestion/build_gold.py` are kept in the repo as

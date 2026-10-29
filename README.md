@@ -1,6 +1,6 @@
 # Sydney Transit Intelligence Platform
 
-![Sydney Transit Intelligence Platform — four of sixteen lines account for 51% of network delay-minutes](docs/images/banner.webp)
+![Sydney Transit Intelligence Platform banner](docs/images/banner.webp)
 
 An analytics platform that ingests live public transport data from Transport for
 NSW (TfNSW) to measure, explain, and surface where Sydney's rail network is
@@ -35,8 +35,8 @@ TfNSW Open Data Hub (GTFS static + GTFS-Realtime v2, trip updates + alerts)
 Python ingestion  ──►  Databricks Unity Catalog volume (bronze.raw_landing)
         │
         ▼
-BRONZE   7 Delta tables — read_files() for static, COPY INTO for realtime
-        │                 (COPY INTO tracks already-loaded files itself)
+BRONZE   7 Delta tables — static timetable versions appended (read_files()), realtime via
+        │                 COPY INTO (which tracks already-loaded files itself)
         ▼
 dbt Core: staging (8 views) → silver (reconciliation) → gold (8 marts,
           1 incremental fact table, 31 tests) — this is what the scheduled
@@ -45,8 +45,9 @@ dbt Core: staging (8 views) → silver (reconciliation) → gold (8 marts,
         ├──► ml/ — small delay-risk classifier (secondary, honest results)
         └──► CSV extracts ──► Tableau Public (2 published dashboards)
 
-Scheduled every 15 min by a local launchd job. GitHub Actions runs ruff + pytest
-on every push, and dbt build against an isolated CI schema on every dbt PR.
+Scheduled every 15 min by a local launchd job (static timetable refreshed daily, health
+check on every run). GitHub Actions runs ruff + pytest on every push, and dbt build
+against an isolated CI schema on every dbt PR.
 ```
 
 See [docs/architecture.md](docs/architecture.md) for the full diagram (Mermaid,
@@ -71,76 +72,107 @@ Full design rationale, including two things discovered only by actually building
 this (the token's SQL-only scope, and TfNSW's realtime feed leaving `start_date`
 blank) live in [PROJECT_PLAN.md](PROJECT_PLAN.md).
 
-## What's built and verified so far
+## Where each piece runs
 
-Not a plan — real output from the live pipeline:
+Nothing here is hidden in a cloud console you can't see. This is exactly what runs where:
 
-- **Bronze**: 7 Delta tables in `workspace.bronze` — 137 routes, 1,214 stops, 65,916
-  trips, 1,208,729 scheduled stop-times, plus growing realtime trip-stop updates and
-  service alerts, accumulating every 15 minutes via the scheduled pipeline
-- **Silver + Gold, now dbt-managed**: 21,475 trip-stop observations (and growing)
-  across 2 days, reconciled against the static schedule. A clean `dbt build`: **46
-  passed, 0 errors**, 31 tests total
-- **Three real things dbt's tests caught on real data** (not hypothetical): a
-  `REPLACEMENT` schedule_relationship value TfNSW uses for bus-replaces-train
-  services that wasn't in the initial accepted-values list; a uniqueness violation
-  (1,348 rows) from TfNSW reporting `stop_sequence=0` for every stop on some NSW
-  TrainLink intercity trips; and a schema conflict from cutting the scheduled
-  pipeline over from hand-written SQL to dbt. Full detail in
-  [dbt_transit/README.md](dbt_transit/README.md) and [ROADMAP.md](ROADMAP.md).
-- **A real finding**: on 2026-09-16, Sydney Trains' STH line ran 0% on-time with a
-  ~39-minute average delay — captured live, not a synthetic example
-- **9 passing unit tests** on the GTFS-Realtime protobuf decode logic (trip updates
-  + service alerts), plus 31 dbt tests on the transformed data
-- **Live dashboards on Tableau Public**:
-  - [Network Reliability Overview](https://public.tableau.com/app/profile/mahesh.sai.kandula7753/viz/SydneyTrains-NetworkReliability/NetworkReliabilityOverview) — on-time % and average delay by route, sorted worst to best
-  - [Business Impact](https://public.tableau.com/app/profile/mahesh.sai.kandula7753/viz/SydneyTrains-NetworkReliability/BusinessImpact) — the Pareto (delay concentration) and alert-delay-impact findings below, visualized
-- **Live dbt docs**: [mskandula.github.io/sydney-transit-intelligence-platform](https://mskandula.github.io/sydney-transit-intelligence-platform/) — full model lineage, column-level catalog metadata from the real warehouse, and every test description, auto-deployed on every push
+| Piece | Where it runs | What starts it |
+|---|---|---|
+| Ingestion scripts (Python) | The developer's Mac, inside the project's `.venv` | A macOS `launchd` job, every 15 minutes |
+| Databricks (storage and compute) | Databricks Free Edition cloud workspace, catalog `workspace` (schemas `bronze`, `staging`, `silver`, `gold`) | Queries sent by the scripts and by dbt |
+| **dbt Core** | **The Mac's terminal** (`.venv/bin/dbt`), sending SQL to the Databricks SQL warehouse. **Not dbt Cloud.** | `scripts/run_pipeline.sh` (the same dbt also runs on a GitHub-hosted runner for CI) |
+| CI checks | GitHub Actions runners | Every push / pull request |
+| dbt documentation site | GitHub Pages | Every push that touches `dbt_transit/` |
+| Dashboards | Tableau Public (a **published snapshot**, refreshed by republishing from Tableau Desktop) | Manual |
 
-![Network Reliability Overview dashboard — on-time % and average delay by route, sorted worst to best](tableau/screenshots/network_reliability_overview.png)
+To see the data in Databricks: open **Catalog** in the left sidebar, then `workspace` and `bronze` or `gold`.
+The Databricks Home page shows only tutorials and recents, never your tables.
+**SQL Warehouses → Query history** shows every query this project has run.
 
-See [ROADMAP.md](ROADMAP.md) for the full, currently-accurate status per phase.
+## What the data says
 
-## Business impact
+Questions a rail operator would ask, answered from the Gold tables (generated by
+[analysis/generate_findings.py](analysis/generate_findings.py); full detail and caveats in
+[docs/findings.md](docs/findings.md)). Basis: **57,363 reconciled stop events** on 5 usable
+days (16-19 Sep and 28-29 Oct 2026). The network ran **96.2% on time** (within 5 minutes,
+TfNSW's standard), with an average delay of **0.73 minutes**.
 
-The point of this platform isn't just "here's a dashboard" — it's answering the
-question a network performance team would actually ask: **where should limited
-operational attention go first?** `gold.mart_line_delay_concentration` answers that
-directly, using the same concentration framing as the "top 10% of sellers drive
-67.6% of revenue" finding in my E-Commerce project:
+**Which lines cause the most delay?** Four of 17 lines (T8, T2, T4, T1) account for **54%** of all
+delay-minutes.
 
-> **3 of Sydney Trains' 16 lines (STH, T4, SCO) are responsible for 50.5% of all
-> network delay-minutes captured so far. 6 lines account for 79.0%.**
-> (as of 2026-09-17, across 7,399 trip-stop observations spanning 2 days —
-> this number updates as the scheduled pipeline accumulates more history)
+![Delay concentration Pareto: T8, T2, T4 and T1 account for 54% of all delay-minutes](docs/images/findings/delay_concentration.png)
 
-That's a concrete, actionable answer — fix or investigate those lines first, not
-spread effort evenly across 16 — and it's recomputed automatically every time the
-pipeline runs, so it gets more statistically reliable as more history accumulates
-(see [scripts/run_pipeline.sh](scripts/run_pipeline.sh), which polls TfNSW every 15
-minutes to build that history up over time).
+**Which lines are least punctual?** That is a different question: volume matters for delay-minutes,
+but for passengers punctuality matters. SCO (90.7% on time), T3 (92.2%) and T8 (94.2%) are weakest.
 
-![Delay Concentration Pareto chart — 3 lines account for over 50% of network delay-minutes](tableau/screenshots/business_impact.png)
+![On-time percentage by line](docs/images/findings/ontime_by_line.png)
 
-**Second finding — do disruption alerts actually matter, or is impact overstated?**
-`gold.mart_alert_delay_impact` (from the new `gtfs_service_alerts` feed, joined
-against actual observed delay during each alert's active window) answers this with
-real correlation, not assumption:
+**When is it worst?** The evening peak. 17:00-18:59 runs 87-88% on time versus 97-99% in the
+morning, and the average delay is 2.0-2.3 minutes against 0.3-0.5.
 
-> **The "Buses replace trains between Leppington and Fairfield" maintenance alert
-> correlates with an 11.5-minute average delay increase on route IWL_1c while
-> active, versus that route's own baseline.**
+![On-time percentage by hour of day](docs/images/findings/ontime_by_hour.png)
 
-That's the difference between "we posted a disruption notice" and "the disruption
-notice's operational impact was actually this large" — the kind of answer that
-turns a dashboard into an evaluation of communication effectiveness, not just a
-delay tracker.
+**Do service alerts explain the delays?** Only weakly. Across 26 "buses replace trains" maintenance
+alert windows (1,931 observations) the average delay was just **0.4 minutes** above each route's own
+baseline, and for the 16 windows with 20+ observations it was slightly *below* baseline. An earlier
+headline of "+11 minutes" came from one route with 2 observations and should not be read as typical.
+
+**Why is it late?** The data shows *where and when*, not *why*. The evening-peak pattern is
+consistent with crowding and dwell time, but that is a hypothesis this dataset cannot test.
+Weekends (358 stop events) are too thin to compare.
+
+## Status and known limits
+
+- **Runs on a laptop, not 24/7.** The scheduled job only runs while the Mac is awake, so there are
+  gaps (for example 10-20 Oct and 26-27 Oct).
+- **Two silent failures were found and fixed on 29 Oct 2026**, both recorded in the
+  [runbook](docs/runbook.md#incident-log):
+  1. Since 4 Oct the Bronze load crashed on a column-type mismatch while the script still printed
+     "done". Fixed at the source, with a regression test.
+  2. The static timetable was fetched once and never refreshed. When TfNSW rotated its trip IDs
+     (19 Sep) every live trip stopped matching it. Timetables are now refreshed daily and every
+     version is kept. Days 19 Sep to 27 Oct cannot be reconciled because those timetable versions
+     were never captured (they are kept in Bronze and flagged as orphans).
+  The pipeline now ends each run with `done OK` or `done FAILED: <steps>`, and a health check
+  fails the run if data goes stale or stops matching the timetable.
+- **Tableau dashboards are a snapshot** from mid-September, so they lag the numbers above until
+  they are republished from Tableau Desktop using the refreshed CSVs in `tableau/extracts/`.
+- **Small sample.** Findings rest on about five usable days. Treat them as indicative, and as a
+  demonstration of the method rather than a verdict on the network.
+
+## Proof it works
+
+Real screenshots and captured output, all stored in [docs/images/proof/](docs/images/proof/).
+
+| What | Evidence |
+|---|---|
+| Live dbt lineage: Bronze to staging to Silver to Gold facts and marts | ![dbt lineage](docs/images/proof/dbt_docs_lineage_full.jpg) |
+| CI/CD: three GitHub Actions workflows, all green | ![GitHub Actions runs](docs/images/proof/github_actions_runs.jpg) |
+| A dbt CI run that builds and tests against the real warehouse | ![dbt CI run](docs/images/proof/github_dbt_ci_run.jpg) |
+| What exists in Databricks (row counts per table) | ![Databricks inventory](docs/images/proof/databricks_inventory_query.png) |
+| One full scheduled run: ingest, load, dbt build (46 pass), health check, `done OK` | ![Pipeline run](docs/images/proof/terminal_pipeline_run.png) |
+| The scheduled job registered with macOS | ![Scheduler](docs/images/proof/terminal_scheduler.png) |
+| Tests and lint | ![Tests and lint](docs/images/proof/terminal_tests_lint.png) |
+| Where the data was lost, and why (the incident, as a chart) | ![Data coverage by day](docs/images/findings/data_coverage_by_day.png) |
+
+Terminal and query images are rendered from the real output of those commands (same text, drawn as
+an image). Browser images are genuine screenshots.
+
+**Live links**
+- [Network Reliability Overview](https://public.tableau.com/app/profile/mahesh.sai.kandula7753/viz/SydneyTrains-NetworkReliability/NetworkReliabilityOverview) (Tableau Public)
+- [Business Impact](https://public.tableau.com/app/profile/mahesh.sai.kandula7753/viz/SydneyTrains-NetworkReliability/BusinessImpact) (Tableau Public)
+- [dbt docs site](https://mskandula.github.io/sydney-transit-intelligence-platform/) (model lineage, tests, column catalog)
+
+![Network Reliability Overview dashboard](tableau/screenshots/network_reliability_overview.png)
+
+See [ROADMAP.md](ROADMAP.md) for per-phase status.
 
 ## Repository structure
 
 ```
-ingestion/          Python: TfNSW ingestion, Databricks volume upload, Bronze/
-                     Silver/Gold SQL builders, Tableau extract export
+ingestion/          Python: TfNSW ingestion, Databricks upload, Bronze loading, health
+                     check, Tableau extract export (build_silver/gold.py = Phase 1 legacy)
+analysis/           generate_findings.py — draws the findings charts from the Gold tables
 scripts/            run_pipeline.sh — the scheduled ingestion entry point
 notebooks/           Optional PySpark path for working directly in the Databricks
                      UI (unexecuted — Phase 1 runs entirely via ingestion/)
@@ -152,7 +184,9 @@ docs/architecture.md  Full architecture diagram (Mermaid) and why it changed fro
 docs/data_model.md   Star schema reference — grain, keys, columns
 docs/kpi_definitions.md  Precise definition of every KPI used in the dashboards
 docs/scheduled_ingestion.md  How the local launchd job works, and its real limits
-docs/runbook.md      Operational checks and fixes for real failure modes hit running this
+docs/runbook.md      Start/stop/check commands, failure modes, and the incident log
+docs/findings.md    The analysis in full: which lines, when, where, why, and the caveats
+docs/images/         banner, findings charts, and proof/ (screenshots and captured output)
 .github/workflows/   CI/CD — ruff + pytest, and dbt build/test on an isolated CI schema
 PROJECT_PLAN.md      Full design doc: business case → interview prep
 ROADMAP.md           Phased build plan and live status
@@ -186,3 +220,24 @@ python ingestion/export_gold_extracts.py
 Or just run [scripts/run_pipeline.sh](scripts/run_pipeline.sh), which does the
 realtime/dbt/export steps above in order — that's exactly what the scheduled job
 runs (see [docs/scheduled_ingestion.md](docs/scheduled_ingestion.md)).
+
+## Starting, stopping and checking the pipeline
+
+The pipeline is a scheduled job on the developer's Mac. It is not a one-off script, and it does
+not run by itself when the laptop is closed or asleep.
+
+```bash
+# Is it registered and healthy?  (PID or "-", last exit code, name; exit code 0 = last run OK)
+launchctl list | grep sydney-transit
+
+# Stop it (this is what "paused" means; nothing is lost, data simply stops accumulating)
+launchctl unload ~/Library/LaunchAgents/com.mahesh.sydney-transit-ingest.plist
+
+# Start it again (it also runs once immediately, then every 15 minutes)
+launchctl load ~/Library/LaunchAgents/com.mahesh.sydney-transit-ingest.plist
+
+# Run it once by hand and watch
+./scripts/run_pipeline.sh && tail -n 30 logs/pipeline.log   # last line: "done OK" or "done FAILED: <steps>"
+```
+
+More in [docs/runbook.md](docs/runbook.md).

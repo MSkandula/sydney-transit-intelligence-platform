@@ -120,6 +120,19 @@ vehicle positions or alerts yet), 1–2 weeks of captured data.
   actually replaced them.
 - ⬜ *(optional)* Expand scope beyond Sydney Trains to other modes
 
+## Reliability fixes and re-baseline (2026-10-29)
+- ✅ Found and fixed two silent failures (full write-up: [docs/runbook.md](docs/runbook.md#incident-log)):
+  Bronze loading crashed from 4 Oct on a column-type mismatch, and the static timetable was
+  never refreshed so live trips stopped matching it from 19 Sep. Timetable versions are now kept
+  and refreshed daily; a regression test and a health check were added; the pipeline reports
+  `done OK` / `done FAILED` honestly.
+- ✅ Findings redone on reconciled data: [docs/findings.md](docs/findings.md) (4 of 17 lines ≈ 54%
+  of delay-minutes; evening peak is the weak window; alerts show little effect).
+- ✅ README now shows where each piece runs (dbt Core runs in the laptop terminal, not dbt Cloud)
+  and carries screenshots and captured output as proof.
+- ⬜ Republish both Tableau dashboards from the refreshed CSVs (they are a mid-September snapshot).
+- ⬜ Retrain the ML delay-risk model once several weeks of reconciled data exist (it was trained on 2 days).
+
 ## Phase 3 — Analytics engineering
 - ✅ Stood up `dbt_transit/` as a real dbt Core project (dbt-databricks adapter) —
   8 staging models + sources.yml, 1 intermediate model (the Silver reconciliation

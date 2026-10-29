@@ -31,6 +31,14 @@ and Gold, excluded only from performance aggregates (`mart_route_daily_performan
 `mart_line_delay_concentration`) where "which route was this" needs to be known —
 never silently dropped from the fact table itself.
 
+**The orphan rate is a health signal, not a constant.** It was ~2% on the first day, but rose to
+~100% from 19 Sep when the static timetable went stale and TfNSW rotated its trip IDs (see the
+runbook's incident log). `ingestion/check_pipeline_health.py` now fails the run if more than 50% of
+the latest day's trips are orphans.
+
+**Non-revenue service**: route `RTTA_REV` ("Non Revenue", empty trains repositioning) has no short
+name and is excluded from the passenger performance marts.
+
 **Delay outlier (`is_delay_outlier`)**: `arrival_delay_seconds < -600` or `> 7200`
 (i.e. more than 10 min early or 2 hours late). A plausibility flag, not a filter —
 the first live pull already surfaced a genuine 5,306-second (~88 min) delay that
@@ -51,7 +59,9 @@ is what turns the mart into a ready-made Pareto chart.
 
 **Delay lift (`delay_lift_seconds`, in `mart_alert_delay_impact`)**:
 `avg_delay_during_alert_seconds − baseline_avg_delay_seconds` for a given
-route/alert pair. Positive means the route ran worse while the alert was active
+route/alert pair. Always read it together with `observations_during_alert`: the largest single lift (+11.1 min,
+route IWL_1c) rests on 2 observations, while across all 26 alert windows the mean is +0.4 min.
+Positive means the route ran worse while the alert was active
 than its own long-run average; negative means better. Only computed for alerts
 with both a start and end time (roughly half the feed — see
 [docs/data_model.md](data_model.md) for why the rest are excluded rather than
