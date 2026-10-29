@@ -11,6 +11,9 @@ with line_totals as (
     from {{ ref('fact_trip_stop_performance') }} f
     join {{ ref('dim_route') }} r on f.route_key = r.route_key
     where not f.is_orphan_trip
+      -- RTTA_REV ("Non Revenue", empty trains repositioning) has no short name and
+      -- isn't passenger service, so it doesn't belong in passenger delay.
+      and r.route_short_name is not null
     group by r.route_short_name, r.mode
 )
 

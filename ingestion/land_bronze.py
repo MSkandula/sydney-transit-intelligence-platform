@@ -41,16 +41,6 @@ STATIC_FILES = {
 }
 
 
-def latest_static_zip() -> Path:
-    static_dir = LOCAL_LANDING_DIR / "gtfs_static" / AGENCY
-    zips = sorted(static_dir.glob("*.zip"))
-    if not zips:
-        raise FileNotFoundError(
-            f"No static zip in {static_dir} — run gtfs_static_ingest.py first."
-        )
-    return zips[-1]
-
-
 def feed_version_from_filename(zip_path: Path) -> str:
     return zip_path.stem.split("_")[-1]
 
@@ -76,27 +66,58 @@ def upload_extracted_static_files(zip_path: Path, feed_version: str, cur) -> str
     return volume_dir
 
 
-def land_static_bronze(cur) -> None:
-    zip_path = latest_static_zip()
-    feed_version = feed_version_from_filename(zip_path)
-    volume_dir = upload_extracted_static_files(zip_path, feed_version, cur)
-
-    for filename, table_name in STATIC_FILES.items():
-        file_path = f"{volume_dir}/{filename}"
-        cur.execute(
-            f"""
-            CREATE OR REPLACE TABLE {CATALOG}.bronze.{table_name} AS
-            SELECT
-                *,
-                '{feed_version}' AS _feed_version,
-                '{zip_path.name}' AS _source_file,
-                current_timestamp() AS _ingested_at
-            FROM read_files('{file_path}', format => 'csv', header => true)
-            """
+def all_static_zips() -> list[Path]:
+    """One zip per distinct feed version (identical re-downloads share a version tag)."""
+    static_dir = LOCAL_LANDING_DIR / "gtfs_static" / AGENCY
+    by_version = {}
+    for zip_path in sorted(static_dir.glob("*.zip")):
+        by_version[feed_version_from_filename(zip_path)] = zip_path
+    if not by_version:
+        raise FileNotFoundError(
+            f"No static zip in {static_dir} — run gtfs_static_ingest.py first."
         )
-        cur.execute(f"SELECT count(*) FROM {CATALOG}.bronze.{table_name}")
-        row_count = cur.fetchone()[0]
-        log.info("%s: %d rows (feed_version=%s)", table_name, row_count, feed_version)
+    return sorted(by_version.values())
+
+
+def land_static_bronze(cur) -> None:
+    """Append every timetable version once; never replace. TfNSW rotates trip IDs between
+    timetable versions, so live data from a given day can only be reconciled against the
+    version that was current then. (An earlier replace-each-run version of this function
+    left ~100% of live trips unmatched after the first rotation.)"""
+    for zip_path in all_static_zips():
+        feed_version = feed_version_from_filename(zip_path)
+        volume_dir = None
+
+        for filename, table_name in STATIC_FILES.items():
+            target = f"{CATALOG}.bronze.{table_name}"
+            cur.execute(
+                f"SELECT count(*) FROM {CATALOG}.information_schema.tables "
+                f"WHERE table_catalog = '{CATALOG}' AND table_schema = 'bronze' "
+                f"AND table_name = '{table_name}'"
+            )
+            table_exists = cur.fetchone()[0] > 0
+            if table_exists:
+                cur.execute(f"SELECT count(*) FROM {target} WHERE _feed_version = '{feed_version}'")
+                if cur.fetchone()[0] > 0:
+                    continue
+
+            if volume_dir is None:
+                volume_dir = upload_extracted_static_files(zip_path, feed_version, cur)
+            select_sql = f"""
+                SELECT
+                    *,
+                    '{feed_version}' AS _feed_version,
+                    '{zip_path.name}' AS _source_file,
+                    current_timestamp() AS _ingested_at
+                FROM read_files('{volume_dir}/{filename}', format => 'csv', header => true)
+            """
+            if table_exists:
+                cur.execute(f"INSERT INTO {target} {select_sql}")
+            else:
+                cur.execute(f"CREATE TABLE {target} AS {select_sql}")
+            cur.execute(f"SELECT count(*) FROM {target} WHERE _feed_version = '{feed_version}'")
+            log.info("%s: loaded %d rows for feed_version=%s",
+                     table_name, cur.fetchone()[0], feed_version)
 
 
 def land_parquet_bronze(cur, table_name: str, volume_subdir: str, ddl_columns: str) -> None:
