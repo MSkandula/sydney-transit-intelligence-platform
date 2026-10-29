@@ -100,9 +100,28 @@ def save_snapshot(records: list[dict], ingested_at: datetime, agency: str = AGEN
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"{ts_tag}.parquet"
 
-    df = pd.DataFrame(records)
+    df = build_dataframe(records)
     df.to_parquet(out_path, index=False)
     return out_path
+
+
+NUMERIC_DOUBLE_COLUMNS = [
+    "arrival_delay_seconds",
+    "arrival_time",
+    "departure_delay_seconds",
+    "departure_time",
+]
+
+
+def build_dataframe(records: list[dict]) -> pd.DataFrame:
+    """pandas writes these columns as int64 when a poll has no missing values and as
+    float64 when it does; Bronze declares them DOUBLE, and one int64 file in a COPY INTO
+    batch made every later load fail. Pin the type so every file has the same schema."""
+    df = pd.DataFrame(records)
+    for col in NUMERIC_DOUBLE_COLUMNS:
+        if col in df.columns:
+            df[col] = df[col].astype("float64")
+    return df
 
 
 def main() -> int:

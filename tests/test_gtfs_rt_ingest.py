@@ -3,7 +3,12 @@ from datetime import datetime, timezone
 import pytest
 from google.protobuf.message import DecodeError
 from google.transit import gtfs_realtime_pb2
-from gtfs_rt_ingest import decode_feed, feed_to_records
+from gtfs_rt_ingest import (
+    NUMERIC_DOUBLE_COLUMNS,
+    build_dataframe,
+    decode_feed,
+    feed_to_records,
+)
 
 
 def _build_sample_feed() -> bytes:
@@ -75,3 +80,14 @@ def test_feed_to_records_returns_empty_list_for_empty_feed():
     feed.header.gtfs_realtime_version = "2.0"
 
     assert feed_to_records(feed, datetime.now(timezone.utc)) == []
+
+
+def test_build_dataframe_pins_numeric_columns_to_float64_even_without_nulls():
+    # Regression: a poll with no missing delays made pandas write int64, which broke
+    # Bronze's COPY INTO (columns are DOUBLE) and stopped all loading for weeks.
+    records = feed_to_records(
+        decode_feed(_build_sample_feed()), datetime(2026, 9, 16, tzinfo=timezone.utc)
+    )
+    df = build_dataframe(records)
+    for col in NUMERIC_DOUBLE_COLUMNS:
+        assert str(df[col].dtype) == "float64"
