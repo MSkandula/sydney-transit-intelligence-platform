@@ -28,14 +28,36 @@ set -a; source .env; set +a
 
 echo "===== $(date -u +%Y-%m-%dT%H:%M:%SZ) =====" >> "$LOG_FILE"
 
-"$PYTHON" ingestion/gtfs_rt_ingest.py >> "$LOG_FILE" 2>&1
-"$PYTHON" ingestion/gtfs_alerts_ingest.py >> "$LOG_FILE" 2>&1
-"$PYTHON" ingestion/land_bronze.py >> "$LOG_FILE" 2>&1
-"$DBT" build --project-dir "$PROJECT_DIR/dbt_transit" --profiles-dir ~/.dbt >> "$LOG_FILE" 2>&1
-# Non-blocking diagnostic — a stale realtime source (>30min old) means the API or
-# the scheduled job itself is having trouble, worth seeing in the log even though
-# `dbt build` above already succeeded/failed independently of this check.
-"$DBT" source freshness --project-dir "$PROJECT_DIR/dbt_transit" --profiles-dir ~/.dbt >> "$LOG_FILE" 2>&1
-"$PYTHON" ingestion/export_gold_extracts.py >> "$LOG_FILE" 2>&1
+# A failed step must be visible: earlier versions printed "done" no matter what, so a
+# crashing Bronze load went unnoticed for weeks. Each step's failure is recorded, the
+# final line says OK or FAILED, and the script's exit code (shown by `launchctl list`)
+# is non-zero if anything failed.
+FAILED_STEPS=""
+run_step() {
+  local name="$1"; shift
+  "$@" >> "$LOG_FILE" 2>&1 || { FAILED_STEPS="$FAILED_STEPS $name"; echo "!!! step failed: $name" >> "$LOG_FILE"; }
+}
 
-echo "===== done $(date -u +%Y-%m-%dT%H:%M:%SZ) =====" >> "$LOG_FILE"
+# The static timetable is refreshed at most once a day. It was originally fetched once and
+# never again; when TfNSW rotated its trip IDs a few days later, every live trip stopped
+# matching the stale timetable and the data silently became ~100% unreconciled.
+if ! find "$PROJECT_DIR/data/bronze/gtfs_static/sydneytrains" -name '*.zip' -mtime -1 2>/dev/null | grep -q .; then
+  run_step static_ingest "$PYTHON" ingestion/gtfs_static_ingest.py
+fi
+
+run_step rt_ingest     "$PYTHON" ingestion/gtfs_rt_ingest.py
+run_step alerts_ingest "$PYTHON" ingestion/gtfs_alerts_ingest.py
+run_step land_bronze   "$PYTHON" ingestion/land_bronze.py
+run_step dbt_build     "$DBT" build --project-dir "$PROJECT_DIR/dbt_transit" --profiles-dir ~/.dbt
+# Fails (non-zero) when realtime data is stale, which is what makes a silent ingestion
+# outage show up as a failed run instead of a green one.
+run_step dbt_freshness "$DBT" source freshness --project-dir "$PROJECT_DIR/dbt_transit" --profiles-dir ~/.dbt
+run_step health_check  "$PYTHON" ingestion/check_pipeline_health.py
+run_step export_csv    "$PYTHON" ingestion/export_gold_extracts.py
+
+if [ -z "$FAILED_STEPS" ]; then
+  echo "===== done OK $(date -u +%Y-%m-%dT%H:%M:%SZ) =====" >> "$LOG_FILE"
+  exit 0
+fi
+echo "===== done FAILED:$FAILED_STEPS $(date -u +%Y-%m-%dT%H:%M:%SZ) =====" >> "$LOG_FILE"
+exit 1
