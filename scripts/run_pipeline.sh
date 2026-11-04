@@ -47,6 +47,9 @@ fi
 
 run_step rt_ingest     "$PYTHON" ingestion/gtfs_rt_ingest.py
 run_step alerts_ingest "$PYTHON" ingestion/gtfs_alerts_ingest.py
+# Retry any file whose upload failed (for example while Databricks was unavailable) so a
+# short outage heals itself on the next run instead of leaving a permanent gap.
+run_step sync_local    "$PYTHON" ingestion/sync_to_volume.py --source local --days 3
 run_step land_bronze   "$PYTHON" ingestion/land_bronze.py
 run_step dbt_build     "$DBT" build --project-dir "$PROJECT_DIR/dbt_transit" --profiles-dir ~/.dbt
 # Fails (non-zero) when realtime data is stale, which is what makes a silent ingestion
