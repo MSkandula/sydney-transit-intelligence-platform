@@ -31,7 +31,7 @@ Read from Microsoft and Databricks pages on 2026-11-05.
 
 | NOT verified (treat as unknown until measured) | How the plan handles it |
 |---|---|
-| Per-unit prices (every price loaded as "$-") | Phase 0 builds a cost model in the Azure Pricing Calculator, region Australia East |
+| ~~Per-unit prices~~ | Resolved: read from the public Retail Prices API; see section 6 |
 | Whether cron Container Apps Jobs draw on the free grant | Credit covers it either way; measured in Phase 3 |
 | Free allowance for Key Vault and storage (none listed) | Assumed cents; measured daily |
 | Pulling a public `ghcr.io` image into Container Apps | Tested in Phase 0 and Phase 2 |
@@ -111,15 +111,29 @@ also ran inside the container against the live TfNSW API):
 | `terraform/` folder and a deploy workflow | Infrastructure as code, deployed through OIDC |
 | `docs/azure.md`, README section, architecture diagram, runbook additions | Documentation and proof |
 
-## 6. Cost model (estimates, to be measured)
+## 6. Cost model
 
-Rough compute use per month, from the current run lengths (about 40 s for ingest, about 5 min for transform):
+Prices are Australia East, USD, from Microsoft's public Retail Prices API (https://prices.azure.com/api/retail/prices),
+retrieved 2026-11-05. (The pricing web pages showed "$-" for every price, so the API is the source.) Usage figures
+are assumptions to be replaced by measurements from Cost Management on days 1, 3 and 7.
 
-- `ingest`, 0.25 vCPU, 2,880 runs: about 29,000 vCPU-s (16% of the grant).
-- `transform`, 0.5 vCPU hourly, 720 runs: about 108,000 vCPU-s (60% of the grant).
+| Component | Price | Assumed usage per month | Cost per month |
+|---|---|---|---|
+| Container Apps `ingest` (0.25 vCPU, 0.5 GiB, about 30 s, 2,880 runs) | $0.000034 per vCPU-s, $0.000004 per GiB-s | 21,600 vCPU-s, 43,200 GiB-s | $0.91 |
+| Container Apps `transform` (0.5 vCPU, 1 GiB, about 5 min, 720 runs) | same | 108,000 vCPU-s, 216,000 GiB-s | $4.54 |
+| ADLS Gen2 storage (hot, LRS) | $0.02 per GB-month | about 0.55 GB (6 MB/day of polls plus a daily timetable zip) | $0.01 |
+| ADLS operations | $0.0715 per 10,000 writes, $0.0715 per 10,000 listings | about 17,000 writes, about 2,000 listings | $0.14 |
+| Key Vault secret reads | $0.03 per 10,000 | about 5,800 | $0.02 |
+| Log Analytics | first 5 GB/month free | about 0.05 GB | $0.00 |
+| Budget alerts, managed identity, Container Apps environment, resource group | no charge | | $0.00 |
+| **Worst case total** | | | **about $5.6** |
 
-If cron jobs count against the free grant, this fits. If not, the credit pays; expected total is a few dollars at
-most. Real numbers come from Cost Management on days 1, 3 and 7. Run transform every 2 hours if usage is high.
+- The Container Apps free grant (180,000 vCPU-s and 360,000 GiB-s per subscription per month, verified) would
+  cover the compute entirely (129,600 vCPU-s), but whether scheduled jobs draw on it is unconfirmed, so the worst
+  case above ignores it.
+- A three-week run is therefore about **$4 worst case, 2% of the $200 credit**. The binding limit is the 30-day
+  window, not the money.
+- If measured compute is higher than modelled, run `transform` every 2 hours (halves its cost).
 
 ## 7. Risks
 
