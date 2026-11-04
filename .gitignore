@@ -34,3 +34,10 @@ data/
 
 # os
 .DS_Store
+
+# Terraform
+terraform/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
