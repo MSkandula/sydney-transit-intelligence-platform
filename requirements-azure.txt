@@ -1,0 +1,6 @@
+# Everything the container image needs: the ingestion code, dbt, and the Azure SDKs.
+# Kept apart from requirements.txt so the laptop pipeline's environment is unchanged.
+-r requirements.txt
+-r dbt_transit/requirements.txt
+azure-storage-blob==12.31.1
+azure-identity==1.27.0

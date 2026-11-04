@@ -1,0 +1,12 @@
+# Allow-list: only what the image needs. This also keeps .env, data/ and logs/ out of an image
+# that is published publicly.
+*
+!requirements.txt
+!requirements-azure.txt
+!ingestion/
+!dbt_transit/
+**/__pycache__
+**/*.pyc
+dbt_transit/target
+dbt_transit/dbt_packages
+dbt_transit/logs
