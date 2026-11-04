@@ -67,16 +67,45 @@ def upload_extracted_static_files(zip_path: Path, feed_version: str, cur) -> str
 
 
 def all_static_zips() -> list[Path]:
-    """One zip per distinct feed version (identical re-downloads share a version tag)."""
+    """One zip per distinct feed version found on local disk (identical re-downloads share a
+    version tag). Empty is fine: a container starts with no files, and the versions it has
+    already unpacked live in the Databricks volume (see list_extracted_versions)."""
     static_dir = LOCAL_LANDING_DIR / "gtfs_static" / AGENCY
     by_version = {}
     for zip_path in sorted(static_dir.glob("*.zip")):
         by_version[feed_version_from_filename(zip_path)] = zip_path
-    if not by_version:
-        raise FileNotFoundError(
-            f"No static zip in {static_dir} — run gtfs_static_ingest.py first."
-        )
     return sorted(by_version.values())
+
+
+def list_extracted_versions(cur) -> set[str]:
+    """Timetable versions already unpacked into the volume. This, not local disk, is the
+    source of truth, so the loader works from an ephemeral container."""
+    try:
+        cur.execute(f"LIST '{BRONZE_VOLUME}/gtfs_static/{AGENCY}/extracted/'")
+        columns = [d[0] for d in cur.description]
+        name_index = columns.index("name") if "name" in columns else 1
+        return {row[name_index].strip("/") for row in cur.fetchall() if row[name_index]}
+    except Exception:
+        log.warning("Could not list extracted timetable versions in the volume", exc_info=True)
+        return set()
+
+
+def loaded_versions(cur) -> dict[str, set[str] | None]:
+    """Per static table: the feed versions already loaded, or None if the table is missing.
+    One pair of queries per table per run, instead of two per table per version."""
+    result = {}
+    for table_name in STATIC_FILES.values():
+        cur.execute(
+            f"SELECT count(*) FROM {CATALOG}.information_schema.tables "
+            f"WHERE table_catalog = '{CATALOG}' AND table_schema = 'bronze' "
+            f"AND table_name = '{table_name}'"
+        )
+        if cur.fetchone()[0] == 0:
+            result[table_name] = None
+            continue
+        cur.execute(f"SELECT DISTINCT _feed_version FROM {CATALOG}.bronze.{table_name}")
+        result[table_name] = {row[0] for row in cur.fetchall()}
+    return result
 
 
 def land_static_bronze(cur) -> None:
@@ -84,37 +113,48 @@ def land_static_bronze(cur) -> None:
     timetable versions, so live data from a given day can only be reconciled against the
     version that was current then. (An earlier replace-each-run version of this function
     left ~100% of live trips unmatched after the first rotation.)"""
-    for zip_path in all_static_zips():
-        feed_version = feed_version_from_filename(zip_path)
-        volume_dir = None
+    in_volume = list_extracted_versions(cur)
+    local_zips = {feed_version_from_filename(z): z for z in all_static_zips()}
+    versions = sorted(in_volume | set(local_zips))
+    if not versions:
+        raise FileNotFoundError(
+            "No timetable version in the volume or on local disk: run gtfs_static_ingest.py first."
+        )
+    loaded = loaded_versions(cur)
+
+    for feed_version in versions:
+        zip_path = local_zips.get(feed_version)
+        source_file = zip_path.name if zip_path else f"volume:extracted/{feed_version}"
+        volume_dir = f"{BRONZE_VOLUME}/gtfs_static/{AGENCY}/extracted/{feed_version}"
+        ready = feed_version in in_volume
 
         for filename, table_name in STATIC_FILES.items():
             target = f"{CATALOG}.bronze.{table_name}"
-            cur.execute(
-                f"SELECT count(*) FROM {CATALOG}.information_schema.tables "
-                f"WHERE table_catalog = '{CATALOG}' AND table_schema = 'bronze' "
-                f"AND table_name = '{table_name}'"
-            )
-            table_exists = cur.fetchone()[0] > 0
-            if table_exists:
-                cur.execute(f"SELECT count(*) FROM {target} WHERE _feed_version = '{feed_version}'")
-                if cur.fetchone()[0] > 0:
-                    continue
+            table_loaded = loaded[table_name]
+            if table_loaded is not None and feed_version in table_loaded:
+                continue
 
-            if volume_dir is None:
-                volume_dir = upload_extracted_static_files(zip_path, feed_version, cur)
+            if not ready:
+                if zip_path is None:
+                    raise FileNotFoundError(
+                        f"Version {feed_version} has no local zip and is not in the volume"
+                    )
+                upload_extracted_static_files(zip_path, feed_version, cur)
+                ready = True
+
             select_sql = f"""
                 SELECT
                     *,
                     '{feed_version}' AS _feed_version,
-                    '{zip_path.name}' AS _source_file,
+                    '{source_file}' AS _source_file,
                     current_timestamp() AS _ingested_at
                 FROM read_files('{volume_dir}/{filename}', format => 'csv', header => true)
             """
-            if table_exists:
+            if table_loaded is not None:
                 cur.execute(f"INSERT INTO {target} {select_sql}")
             else:
                 cur.execute(f"CREATE TABLE {target} AS {select_sql}")
+            loaded[table_name] = (table_loaded or set()) | {feed_version}
             cur.execute(f"SELECT count(*) FROM {target} WHERE _feed_version = '{feed_version}'")
             log.info("%s: loaded %d rows for feed_version=%s",
                      table_name, cur.fetchone()[0], feed_version)
