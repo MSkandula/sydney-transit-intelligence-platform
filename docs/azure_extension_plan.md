@@ -146,13 +146,13 @@ Azure Monitor, Terraform, Docker. Do not claim "Azure Databricks" unless phase 9
 | Item | State |
 |---|---|
 | Azure archive step in all ingest scripts (`landing.py`, `azure_storage.py`) | Done, tested against Azurite |
-| Timetable versions read from the Databricks volume (`land_bronze.py`) | Done, unit-tested with a scripted cursor; **not yet run against real Databricks (it is down)** |
-| Idempotent `sync_to_volume.py` | Done, unit-tested; same caveat |
+| Timetable versions read from the Databricks volume (`land_bronze.py`) | Done. **Verified on real Databricks (5 Nov):** found two timetable versions the laptop had downloaded but never loaded and loaded them (about 1.3M stop-times each), plus 169,129 trip-update and 63,412 alert rows of backlog |
+| Idempotent `sync_to_volume.py` | Done. **Verified on real Databricks (5 Nov):** 160 local files, 79 missing, 79 uploaded and 0 failed in 80 s on one session |
 | `ingest` and `transform` job entry points (`jobs.py`) | Done; `ingest` run in the container against the live API |
 | Dockerfile (non-root, no secrets, allow-list `.dockerignore`) | Built and inspected locally (1.08 GB) |
 | Terraform (storage, Key Vault, identity, Log Analytics, Container Apps jobs, budget) | `terraform validate` passes; never planned (needs an Azure login) |
 | Workflows: image build to GHCR, Terraform CI, CI with Azurite | Written; run by GitHub once the branch is pushed |
-| Real end-to-end test of `transform` against Databricks | Blocked until Databricks accepts sessions again |
+| Real test of the load chain against Databricks | Done 5 Nov: sync, Bronze, `dbt build` (46 pass, 0 errors), health check and freshness all pass; 8 days (28 Oct to 4 Nov) reconcile at about 0% orphans. Not yet tested: the Azure source path of the sync (needs a real Azure account) |
 
 ## 9. Decisions needed
 
