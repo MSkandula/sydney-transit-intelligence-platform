@@ -23,13 +23,21 @@ CATALOG = "workspace"
 BRONZE_VOLUME = f"/Volumes/{CATALOG}/bronze/raw_landing"
 
 
+def staging_allowed_paths() -> list[str]:
+    """Local folders the SQL connector may PUT from: the home directory (laptop) and the
+    landing directory (a container, where the home directory is not where files are staged)."""
+    candidates = [Path.home(), os.environ.get("LANDING_DIR")]
+    paths = [str(p) for p in candidates if p and Path(p).exists()]
+    return paths or ["/tmp"]
+
+
 def connect():
     host = os.environ["DATABRICKS_HOST"].replace("https://", "")
     return sql.connect(
         server_hostname=host,
         http_path=os.environ["DATABRICKS_HTTP_PATH"],
         access_token=os.environ["DATABRICKS_TOKEN"],
-        staging_allowed_local_path=str(Path.home()) if Path.home().exists() else "/tmp",
+        staging_allowed_local_path=staging_allowed_paths(),
     )
 
 

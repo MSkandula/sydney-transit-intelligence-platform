@@ -18,7 +18,8 @@ GTFS_REALTIME_V2_BASE_URL = "https://api.transport.nsw.gov.au/v2/gtfs/realtime"
 AGENCY = "sydneytrains"
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-LOCAL_LANDING_DIR = REPO_ROOT / "data" / "bronze"
+# Overridable so a container (whose disk is wiped after every run) can use a temp dir.
+LOCAL_LANDING_DIR = Path(os.environ.get("LANDING_DIR") or REPO_ROOT / "data" / "bronze")
 
 
 def require_api_key() -> str:

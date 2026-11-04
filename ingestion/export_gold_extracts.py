@@ -8,6 +8,7 @@ Public; there's no way around that being a manual step on the free tier.
 
 import csv
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -17,7 +18,9 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 log = logging.getLogger(__name__)
 
 CATALOG = "workspace"
-EXPORT_DIR = Path(__file__).resolve().parent.parent / "tableau" / "extracts"
+EXPORT_DIR = Path(
+    os.environ.get("EXTRACT_DIR") or Path(__file__).resolve().parent.parent / "tableau" / "extracts"
+)
 
 TABLES_TO_EXPORT = [
     "gold.mart_route_daily_performance",

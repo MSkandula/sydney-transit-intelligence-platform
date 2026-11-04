@@ -7,14 +7,13 @@ workspace.bronze.raw_landing Unity Catalog volume via `databricks_upload.py`.
 
 import hashlib
 import logging
-import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
 from config import AGENCY, GTFS_SCHEDULE_BASE_URL, LOCAL_LANDING_DIR, auth_headers
-from databricks_upload import upload_to_volume
+from landing import land_file
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
@@ -60,15 +59,11 @@ def main() -> int:
         "Saved static schedule snapshot: %s (%d bytes)", out_path, len(content)
     )
 
-    if os.environ.get("DATABRICKS_HOST"):
-        volume_subpath = f"gtfs_static/{AGENCY}/{out_path.name}"
-        try:
-            upload_to_volume(out_path, volume_subpath)
-        except Exception:
-            log.exception("Landed locally but failed to upload to Databricks volume")
-            return 1
-    else:
-        log.info("DATABRICKS_HOST not set — skipping volume upload (local-only run)")
+    try:
+        land_file(out_path, f"gtfs_static/{AGENCY}/{out_path.name}")
+    except Exception:
+        log.exception("Landed locally but failed to archive/upload")
+        return 1
 
     return 0
 
